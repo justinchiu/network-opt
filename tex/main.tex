@@ -1,0 +1,74 @@
+% This must be in the first 5 lines to tell arXiv to use pdfLaTeX, which is strongly recommended.
+\pdfoutput=1
+% In particular, the hyperref package requires pdfLaTeX in order to break URLs across lines.
+
+\documentclass[11pt]{article}
+
+\usepackage[a4paper, total={6in, 8in}]{geometry}
+\usepackage{lineno}
+\linenumbers
+
+\usepackage{caption,subcaption}
+
+\usepackage{mystyle}
+
+\usetikzlibrary{calc,patterns,angles,quotes}    
+\usetikzlibrary{decorations.pathmorphing}
+\tikzset{snake it/.style={decorate, decoration=snake}}
+
+\usepackage{natbib}
+\bibliographystyle{abbrvnat}
+\usepackage{hyperref}
+
+% Standard package includes
+\usepackage{times}
+\usepackage{latexsym}
+
+% For proper rendering and hyphenation of words containing Latin characters (including in bib files)
+\usepackage[T1]{fontenc}
+% For Vietnamese characters
+% \usepackage[T5]{fontenc}
+% See https://www.latex-project.org/help/documentation/encguide.pdf for other character sets
+
+% This assumes your files are encoded as UTF8
+\usepackage[utf8]{inputenc}
+
+
+\title{Network Stuff}
+
+\author{Justin Chiu \\
+  Cornell Tech \\
+  \texttt{jtc257@cornell.edu}}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+None
+\end{abstract}
+
+\section{Network Traffic Problem}
+In this section, we consider the problem of optimizing network traffic.
+A network is a graph $G = (V,E)$ with vertices $v_i\in V$ and edges
+$e_{ij}\in E = V\times V$.
+We would like to maximize the total traffic through a series of $K$ paths across the network.
+A path is a sequence of edges $p_{st}^k = (e_{sv_1},e_{v_1v_2},\ldots,e_{v_mt})$
+from source vertex $s$ to target vertex $t$.
+A path contributes a constant amount of traffic $x_p$ to each included edge $e\in p$.
+We denote the set of paths that pass through a particular edge by
+$\pi(e) = \set{p \mid e \in p}$.
+We additionally have the following constraints: traffic must be nonnegative $x_p \geq 0$,
+and each edge has a capacity constraint that the total traffic on that
+edge cannot exceed $\sum_{p\in\pi(e)} x_p \le c_e$.
+
+This yields the following optimization problem:
+\begin{equation}
+\label{eqn:network-opt}
+\begin{aligned}
+\textrm{maximize } \quad & \sum_{p} x_p\\
+\textrm{subject to } &\sum_{p\in\pi(e)}x_p \le c_e, \forall e\\
+& x_p \geq 0, \forall p.
+\end{aligned}
+\end{equation}
+
+
+\end{document}
