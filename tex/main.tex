@@ -64,11 +64,13 @@ This yields the following optimization problem:
 \begin{equation}
 \label{eqn:network-opt}
 \begin{aligned}
-\textrm{maximize } \quad & \sum_{p} x_p\\
+\textrm{maximize } \quad & \sum_{p} x_p \textrm{ or } \sum_{e} \sum_{p\in\pi(e)}x_{p}\\
 \textrm{subject to } &\sum_{p\in\pi(e)}x_p \le c_e, \forall e\\
 & x_p \geq 0, \forall p.
 \end{aligned}
 \end{equation}
+The first objective assigns equal weight to each path, while the second
+objective weights paths based on length.
 
 
 \end{document}
