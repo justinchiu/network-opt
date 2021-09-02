@@ -83,7 +83,7 @@ which applies to problems of the form
 \end{equation}
 
 To massage the problem in Eqn.~\ref{eqn:network-opt} into the correct form,
-we will assume the first (second) objective, which assigns (un)equal weight to each path.
+we will assume the first objective, which assigns equal weight to each path.
 We will introduce two sets of new variables, slack variables $s_e$ for each edge and path\footnote{
 The slack variable replace the inequality constraints.
 One variable is introduced for each edge and path, rather than just each edge,
@@ -101,8 +101,7 @@ The new problem is given by
 &x,s,z \succeq 0,
 \end{aligned}
 \end{equation}
-where $f(x) = -\sum_p x_p$\footnote{
-or $-\sum_e \sum_{p\in\pi(e)}x_p$},
+where $f(x) = -\sum_p x_p$,
 $g(z) = \sum_{pe} \bar\delta(z_{pe} \ge 0)$, $h(s) = \sum_{pe} \bar\delta(s_{pe} \ge 0)$.
 We use the delta notation to indicate a function
 $$
