@@ -131,28 +131,53 @@ The augmented Lagrangian for this problem is
     + (\rho/2)\| F(x,z,s) \|_2^2,
 \end{equation}
 where
-\begin{align*}
-        F(x,z,s) &=
-    \begin{bmatrix}
-        F_1 \\
-        F_2 \\
-        F_3 \\
-        F_4 \\
-        F_5
-    \end{bmatrix}\\
-    [F_1]_e &= c_e - \sum_{p\in\pi(e)}z_{pe} - s_{pe}\\
-    [F_2]_{pe} &= x_p - z_{pe}\\
-    [F_3]_p &= x_p\\
-    [F_4]_{pe} &= s_{pe}\\
-    [F_5]_{pe} &= z_{pe}.
-\end{align*}
+$$F(x,z,s) =
+\begin{bmatrix}
+F_1 \\
+F_2 \\
+F_3 \\
+F_4 \\
+F_5
+\end{bmatrix}
+$$
+and
+$$
+    [F_1]_e = c_e - \sum_{p\in\pi(e)}z_{pe} - s_{pe},
+    [F_2]_{pe} = x_p - z_{pe},
+    [F_3]_p = x_p,
+    [F_4]_{pe} = s_{pe},
+    [F_5]_{pe} = z_{pe}.
+$$
+The elements of $\lambda$ corresponding to $F_1$ are $\lambda_{1,e}$,
+$F_2$ are $\lambda_{2,pe}$, and so forth.
 
 The ADMM updates are as follows:
 \begin{equation}
     \begin{aligned}
-        x^{k+1} := \argmin_{x} \mcL_p(x,z^k,y^k)\\
-        z^{k+1} := \argmin_{z} \mcL_p(x^{k+1},z,y^k)\\
-        \lambda^{k+1} := \lambda^k + \rho(F(x,z,s))
+        x^{k+1} := \argmin_{x} \mcL_\rho(x,z^k,y^k)\\
+        z^{k+1} := \argmin_{z} \mcL_\rho(x^{k+1},z,y^k)\\
+        \lambda^{k+1} := \lambda^k + \rho(F(x,z,s)).
     \end{aligned}
 \end{equation}
+We can compute $\argmin_{x} \mcL_\rho(x,z^k,y^k)$ by restricting our
+attention to terms of $\mcL_\rho$ involving $x$ and setting the derivative equal to 0:
+\begin{align*}
+0
+&= \nabla_{x_p}(-x_p + \sum_{e\in p}\lambda_{2,pe}(x_p - z_{pe}) + \lambda_{3,p} x_p
++ (\rho/2)(x_p^2 + \sum_{e \in p}(x_p - z_{pe})^2))\\
+&= -1 + \sum_{e \in p}\lambda_{2,pe} + \lambda_{3,p} + \rho x_p + \rho\sum_{e \in p} (x_p - z_{pe})\\
+x_p &= \frac{1 - \sum_{e \in p}\lambda_{2,pe} - \lambda_{3,p} + \rho \sum_{e\in p} z_{pe}}
+{(1 + |p|)\rho}.
+\end{align*}
+We perform a similar computation for $\argmin_{z} \mcL_\rho(x^{k+1},z,y^k)$:
+\begin{align*}
+0
+&= \nabla_{z_{pe}}(-x_p + \sum_{e\in p}\lambda_{pe}(x_p - z_{pe}) + \lambda_p x_p
++ (\rho/2)(x_p^2 + \sum_{e \in p}(x_p - z_{pe})^2))\\
+&= -1 + \sum_{e \in p}\lambda_{pe} + \lambda_p + \rho x_p + \rho\sum_{e \in p} (x_p - z_{pe})\\
+x_p &= \frac{1 - \sum_{e \in p}\lambda_{pe} - \lambda_p + \rho \sum_{e\in p} z_{pe}}
+{(1 + |p|)\rho}.
+\end{align*}
+
+
 \end{document}
