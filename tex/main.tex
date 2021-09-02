@@ -172,11 +172,11 @@ x_p &= \frac{1 - \sum_{e \in p}\lambda_{2,pe} - \lambda_{3,p} + \rho \sum_{e\in 
 We perform a similar computation for $\argmin_{z} \mcL_\rho(x^{k+1},z,y^k)$:
 \begin{align*}
 0
-&= \nabla_{z_{pe}}(-x_p + \sum_{e\in p}\lambda_{pe}(x_p - z_{pe}) + \lambda_p x_p
-+ (\rho/2)(x_p^2 + \sum_{e \in p}(x_p - z_{pe})^2))\\
-&= -1 + \sum_{e \in p}\lambda_{pe} + \lambda_p + \rho x_p + \rho\sum_{e \in p} (x_p - z_{pe})\\
-x_p &= \frac{1 - \sum_{e \in p}\lambda_{pe} - \lambda_p + \rho \sum_{e\in p} z_{pe}}
-{(1 + |p|)\rho}.
+&= \nabla_{z_{pe}}\bar\delta(z_{pe}) + \lambda_{1,e}(c_e - \sum_{p\in\pi(e)} z_{pe} - s_{pe})
+    + \lambda_{2,pe}(x_p - z_{pe}) + \lambda_{5,pe}z_{pe}
+    + (\rho/2)((x_p - z_{pe})^2 + z_{pe}^2)\\
+&= -\lambda_{1,e} - \lambda_{2,pe} + \lambda_{5,pe} + \rho(2z_{pe} - x_p)\\
+z_{pe} &= \frac{\lambda_{1,e} + \lambda_{2,pe} - \lambda_{5,pe} + \rho x_p}{2\rho}.
 \end{align*}
 
 
