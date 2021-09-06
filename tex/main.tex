@@ -96,13 +96,13 @@ The new problem is given by
 \label{eqn:network-opt-std}
 \begin{aligned}
 \textrm{minimize } \quad & f(x) + g(z) + h(s)\\
-\textrm{subject to } \quad &c_e - \sum_{p\in\pi(e)}z_{pe} - s_{pe} = 0, \forall e\\
+\textrm{subject to } \quad &c_e - \sum_{p\in\pi(e)}z_{pe} - s_{e} = 0, \forall e\\
 &x_p - z_{pe} = 0, \forall e, \forall p \in \pi(e)\\
 &x,s,z \succeq 0,
 \end{aligned}
 \end{equation}
 where $f(x) = -\sum_p x_p$,
-$g(z) = \sum_{pe} \bar\delta(z_{pe} \ge 0)$, $h(s) = \sum_{pe} \bar\delta(s_{pe} \ge 0)$.
+$g(z) = \sum_{pe} \bar\delta(z_{pe} \ge 0)$, $h(s) = \sum_{e} \bar\delta(s_{e} \ge 0)$.
 We use the delta notation to indicate a function
 $$
 \bar\delta(b) = \begin{cases}
@@ -114,8 +114,8 @@ This problem is decomposable along each path as follows:
 \begin{equation}
 \label{eqn:network-opt-sep}
 \begin{aligned}
-\textrm{minimize } \quad & -\sum_p x_p + \sum_{e \in p} \bar\delta(z_{pe}) + \bar\delta(s_{pe})\\
-\textrm{subject to } \quad &c_e - \sum_{p\in\pi(e)}z_{pe} - s_{pe} = 0, \forall e\\
+\textrm{minimize } \quad & -\sum_p x_p + \sum_p\sum_{e \in p} \bar\delta(z_{pe}) + \sum_e \bar\delta(s_{e})\\
+\textrm{subject to } \quad &c_e - \sum_{p\in\pi(e)}z_{pe} - s_{e} = 0, \forall e\\
 &x_p - z_{pe} = 0, \forall e, \forall p \in \pi(e)\\
 &x,s,z \succeq 0,
 \end{aligned}
@@ -153,32 +153,49 @@ $F_2$ are $\lambda_{2,pe}$, and so forth.
 The ADMM updates are as follows:
 \begin{equation}
     \begin{aligned}
-        s_e^{k+1} := c_e - \sum_{p\in\pi(e)}z_{pe}^k\\
-        x^{k+1} := \argmin_{x} \mcL_\rho(x,z^k,s^{k+1},\lambda^k)\\
-        z^{k+1} := \argmin_{z} \mcL_\rho(x^{k+1},z,s^{k+1},\lambda^k)\\
+        x^{k+1} := \argmin_{x} \mcL_\rho(x,z^k,s^{k},\lambda^k)\\
+        z^{k+1} := \argmin_{z} \mcL_\rho(x^{k+1},z,s^{k},\lambda^k)\\
+        s^{k+1} := \argmin_{s} \mcL_\rho(x^{k+1},z^{k+1},s,\lambda^k)\\
         \lambda^{k+1} := \lambda^k + \rho(F(x^{k+1},z^{k+1},s^{k+1})).
     \end{aligned}
 \end{equation}
-We can compute $\argmin_{x} \mcL_\rho(x,z^k,y^k)$ by restricting our
+We can compute $\argmin_{x} \mcL_\rho(x,z^k,s^k,\lambda^k)$ by restricting our
 attention to terms of $\mcL_\rho$ involving $x$ and setting the derivative equal to 0:
 \begin{align*}
 0
 &= \nabla_{x_p}(-x_p + \sum_{e\in p}\lambda_{2,pe}(x_p - z_{pe}) + \lambda_{3,p} x_p
 + (\rho/2)(x_p^2 + \sum_{e \in p}(x_p - z_{pe})^2))\\
 &= -1 + \sum_{e \in p}\lambda_{2,pe} + \lambda_{3,p} + \rho x_p + \rho\sum_{e \in p} (x_p - z_{pe})\\
-x_p &= \frac{1 - \sum_{e \in p}\lambda_{2,pe} - \lambda_{3,p} + \rho \sum_{e\in p} z_{pe}}
-{(1 + |p|)\rho}.
-\end{align*}
-We perform a similar computation for $\argmin_{z} \mcL_\rho(x^{k+1},z,y^k)$:
-\begin{align*}
-0
-&= \nabla_{z_{pe}}\bar\delta(z_{pe}) + \lambda_{1,e}(c_e - \sum_{p\in\pi(e)} z_{pe} - s_{pe})
-    + \lambda_{2,pe}(x_p - z_{pe}) + \lambda_{5,pe}z_{pe}
-    + (\rho/2)((x_p - z_{pe})^2 + z_{pe}^2)\\
-&= -\lambda_{1,e} - \lambda_{2,pe} + \lambda_{5,pe} + \rho(2z_{pe} - x_p)\\
-z_{pe} &= \frac{\lambda_{1,e} + \lambda_{2,pe} - \lambda_{5,pe} + \rho x_p}{2\rho}.
+x_p &= \max(0,\frac{1 - \sum_{e \in p}\lambda_{2,pe} - \lambda_{3,p} + \rho \sum_{e\in p} z_{pe}}
+{(1 + |p|)\rho}).
 \end{align*}
 
-{\color{red} Can we compute residuals without matrix formulation?}
+We perform a similar computation for $\argmin_{z} \mcL_\rho(x^{k+1},z,s^k,\lambda^k)$:
+\begin{align*}
+0
+&= \nabla_{z_{pe}}\bar\delta(z_{pe}) + \lambda_{1,e}(c_e - \sum_{p\in\pi(e)} z_{pe} - s_{e})
+    + \lambda_{2,pe}(x_p - z_{pe}) + \lambda_{5,pe}z_{pe}\\
+& \qquad + (\rho/2)((c_e - \sum_{p\in\pi(e)} z_{pe} - s_e)^2 + (x_p - z_{pe})^2 + z_{pe}^2)\\
+&= -\lambda_{1,e} - \lambda_{2,pe} + \lambda_{5,pe}
+    + \rho(-c_e + \sum_{p\in\pi(e)} z_{pe} + s_e  + 2z_{pe} - x_p).
+\end{align*}
+This gives us a system of equations for each edge $0 = A_ez_e + b_e$
+allowing us to solve for $z_e = -A_e^{-1}b_e$.
+Let $P_e= |\pi(e)|$. We then have
+\begin{align*}
+A_e &= \mathbf{1}_{P_e\times P_e} + 2I_{P_e\times P_e}\\
+[b_e]_p &= (-\lambda_{1,e} - \lambda_{2,pe} + \lambda_{5,pe}
+    + \rho(-c_e + s_e - x_p).
+\end{align*}
+
+Then, for $\argmin_{s} \mcL_\rho(x^{k+1},z^{k+1},s,y^k)$:
+\begin{align*}
+0
+&= \nabla_{s_{e}}\bar\delta(s_{e}) + \lambda_{1,e}(c_e - \sum_{p\in\pi(e)} z_{pe} - s_{e})
+ + \lambda_{4,e}s_{e}
+    + (\rho/2)((c_e - \sum_{p\in\pi(e)} z_{pe} - s_{e})^2 + s_{e}^2)\\
+&= -\lambda_{1,e} + \lambda_{4,e} + \rho(-c_e + \sum_{p\in\pi(e)} z_{pe} + 2s_e)\\
+s_{e} &= \max(0,\frac{\lambda_{1,e} - \lambda_{4,e} + \rho(c_e - \sum_{p\in\pi(e)}z_{pe})}{2\rho}).
+\end{align*}
 
 \end{document}
