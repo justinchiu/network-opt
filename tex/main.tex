@@ -126,9 +126,10 @@ This problem is decomposable along each path (for $x$) or edge (for $z$ and $s$)
 The augmented Lagrangian for this problem is
 \begin{equation}
     \label{eqn:network-lagrangian}
-    \mcL_\phi(x,z,s,\lambda) =-\sum_p x_p + \sum_p\sum_{e \in p} \bar\delta(z_{pe}) + \sum_{e} \bar\delta(s_{e})
+    \mcL_\rho(x,z,s,\lambda) =-\sum_p x_p + \sum_e\sum_{p\in\pi(e)} \bar\delta(z_{pe})
+        + \sum_{e} \bar\delta(s_{e})
         + \lambda^\top F(x,z,s)
-    + (\rho/2)\| F(x,z,s) \|_2^2,
+        + (\rho/2)\| F(x,z,s) \|_2^2,
 \end{equation}
 where
 $$F(x,z,s) =
