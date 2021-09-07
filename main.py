@@ -93,7 +93,7 @@ def naive_admm_solver(
     pi_e,
     rho,
     x, z, s,
-    lambda1, lambda2, lambda3, lambda4, lambda5,
+    lambda1, lambda2,
     num_iters = 100,
 ):
     c = problem.constraints.reshape(-1)
@@ -105,53 +105,66 @@ def naive_admm_solver(
     pi_e_flat = pi_e.reshape(V*V, K).astype(int)
     num_paths_for_edge = pi_e_flat.sum(-1)
 
+    pi_e_flat_bool = pi_e.reshape(-1).astype(bool)
+
     A_invs = [
         np.linalg.inv(np.ones((k, k)) + np.eye(k))
+        if k > 0 else None
+        for k in num_paths_for_edge.tolist()
+    ]
+    As = [
+        np.ones((k, k)) + np.eye(k)
         if k > 0 else None
         for k in num_paths_for_edge.tolist()
     ]
 
     for iter in range(num_iters):
         # x update
-        #x_numerator = 1 - (lambda2 * pi_e_flat).sum(0) - lambda3 + rho * (pi_e_flat * z).sum(0)
         x_numerator = 1 - (lambda2 * pi_e_flat).sum(0) + rho * (pi_e_flat * z).sum(0)
         x_denominator = path_lens * rho
         x = np.maximum(0, x_numerator / x_denominator)
-        import pdb; pdb.set_trace()
 
         # z update
         for e in range(c.size):
             if A_invs[e] is not None:
-                A_inv = A_invs[e]
+                A_inv = A_invs[e] / rho
                 path_ix = pi_e_flat[e].astype(bool)
                 #b = (-lambda1[e,None] - lambda2[e, path_ix] + lambda5[e, path_ix]
                 b = (-lambda1[e,None] - lambda2[e, path_ix]
                     + rho * (-c[e,None] + s[e,None] - x[path_ix]))
                 z[e, path_ix] = -A_inv @ b
-        z = np.maximum(0, z)
-        import pdb; pdb.set_trace()
+        #z = np.maximum(0, z)
+        #import pdb; pdb.set_trace()
          
         # s update
         s = np.maximum(0,
             #(lambda1 - lambda4 + rho * (c - (pi_e_flat * z).sum(-1))) / (2 * rho))
             (lambda1 + rho * (c - (pi_e_flat * z).sum(-1))) / (rho))
-        
+
+        r1 = c - (pi_e_flat * z).sum(-1) - s
+        r2 = x[None] - z
+
         # lambda update
-        lambda1 += rho * (c - (pi_e_flat * z).sum(-1) - s)
-        lambda2 += rho * (x[None] - z)
-        #lambda3 += rho * (x)
-        #lambda4 += rho * (s)
-        #lambda5 += rho * (z)
+        lambda1 += rho * r1
 
-    return x, z, s, lambda1, lambda2, lambda3, lambda4, lambda5
+        lambda2 = lambda2.reshape(-1)
+        lambda2[pi_e_flat_bool] += rho * r2.reshape(-1)[pi_e_flat_bool]
+        #np.add.at(lambda2, pi_e_flat, rho * r2[pi_e_flat])
+        lambda2 = lambda2.reshape(pi_e_flat.shape)
+
+    return x, z, s, lambda1, lambda2
 
 
-x, z, s, l1, l2, l3, l4, l5 = naive_admm_solver(
+s = np.zeros((V,V))
+#np.copyto(s, problem.constraints)
+s = s.reshape(-1)
+
+x, z, s, l1, l2 = naive_admm_solver(
     problem,
     pi_e,
-    0.5,
-    np.zeros((K,)), np.zeros((V*V, K)), np.zeros((V*V,)),
-    np.zeros((V*V,)), np.zeros((V*V, K)), np.zeros((K,)), np.zeros((V*V,)), np.zeros((V*V, K)),
+    0.8,
+    np.zeros((K,)), np.zeros((V*V, K)), s,
+    np.zeros((V*V,)), np.zeros((V*V, K))
 )
 
 import pdb; pdb.set_trace()
