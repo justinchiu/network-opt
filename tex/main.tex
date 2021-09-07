@@ -87,7 +87,8 @@ which applies to problems of the form
 
 To massage the problem in Eqn.~\ref{eqn:network-opt} into the correct form,
 we will introduce two sets of new variables: slack variables $s_e$ for each edge\footnote{
-The slack variable replace the inequality constraints with equality constraints.
+The slack variable replaces the inequality constraints $c_e - \sum_p x_p \ge 0$
+with equality constraints $c_e - \sum_p x_p - s_e = 0$.
 }
 and decoupled edge weights $z_{pe}$ for each edge and path.
 
