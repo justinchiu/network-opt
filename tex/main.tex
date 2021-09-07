@@ -114,13 +114,14 @@ This problem is decomposable along each path (for $x$) or edge (for $z$ and $s$)
 \begin{equation}
 \label{eqn:network-opt-sep}
 \begin{aligned}
-\textrm{minimize } \quad & -\sum_p x_p + \sum_e\sum_{p \in \pi(e)} \bar\delta(z_{pe}) + \sum_e \bar\delta(s_{e})\\
+\textrm{minimize } \quad & -\sum_p x_p
+    + \sum_e\sum_{p \in \pi(e)} \bar\delta(z_{pe})
+    + \sum_e \bar\delta(s_{e})\\
 \textrm{subject to } \quad &c_e - \sum_{p\in\pi(e)}z_{pe} - s_{e} = 0, \forall e\\
 &x_p - z_{pe} = 0, \forall e, \forall p \in \pi(e)\\
-&x,s,z \succeq 0,
+&x,s,z \succeq 0.
 \end{aligned}
 \end{equation}
-where the summation in the objective is nested.
 
 The augmented Lagrangian for this problem is
 \begin{equation}
