@@ -98,7 +98,7 @@ def naive_admm_solver(
 ):
     c = problem.constraints.reshape(-1)
 
-    path_lens = np.array([len(p)-1 for p in problem.paths])
+    path_lens = np.array([len(p) for p in problem.paths])
 
     L = sum(path_lens)
 
@@ -121,7 +121,7 @@ def naive_admm_solver(
     for iter in range(num_iters):
         # x update
         x_numerator = 1 - (lambda2 * pi_e_flat).sum(0) + rho * (pi_e_flat * z).sum(0)
-        x_denominator = (path_lens) * rho
+        x_denominator = (path_lens-1) * rho
         x = np.maximum(0, x_numerator / x_denominator)
 
         # z update
@@ -138,6 +138,7 @@ def naive_admm_solver(
          
         # s update
         s = np.maximum(0,
+            #(lambda1 - lambda4 + rho * (c - (pi_e_flat * z).sum(-1))) / (2 * rho))
             (lambda1 + rho * (c - (pi_e_flat * z).sum(-1))) / (rho))
 
         r1 = c - (pi_e_flat * z).sum(-1) - s
