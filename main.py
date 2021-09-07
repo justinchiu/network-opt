@@ -2,6 +2,8 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
 
+import cvxpy as cp
+
 from typing import NamedTuple, List
 
 class Problem(NamedTuple):
@@ -58,7 +60,74 @@ nx.draw(G, pos, with_labels=True)
 #edge_labels = nx.get_edge_attributes(G,'state')
 #nx.draw_networkx_edge_labels(G, pos, edge_labels = edge_labels)
 
-#plt.savefig('this.png')
-plt.show()
+plt.savefig('example_graph.png')
+#plt.show()
 
-#import pdb; pdb.set_trace()
+K = len(problem.paths)
+V = problem.constraints.shape[0]
+pi_e = np.zeros((V, V, K))
+
+for p, path in enumerate(problem.paths):
+    for s,t in zip(path, path[1:]):
+        pi_e[s,t,p] = 1
+
+# CVXPY
+x = cp.Variable(K)
+objective = cp.Minimize(-cp.sum(x))
+constraints = [
+    pi_e.reshape(V*V, K) @ x <= problem.constraints.reshape(V*V),
+    x >= 0,
+]
+
+prob = cp.Problem(objective, constraints)
+result = prob.solve()
+print(x.value)
+print(constraints[0].dual_value)
+
+
+
+# ADMM
+
+def naive_admm_solver(
+    problem,
+    pi_e,
+    rho,
+    x, z, s,
+    lambda1, lambda2, lambda3, lambda4, lambda5,
+    num_iters = 10,
+):
+    c = problem.constraints.reshape(-1)
+
+    path_lens = np.array([len(p) for p in problem.paths])
+
+    L = sum(path_lens)
+    A = np.ones((L, L)) + 2 * np.eye(L)
+    A_inv = np.linalg.inv(A)
+
+    pi_e_flat = pi_e.reshape(V*V, K)
+
+    for iter in range(num_iters):
+        # x update
+        x_numerator = 1 - (lambda2 * pi_e_flat).sum(0) - lambda3 + rho * (pi_e_flat * z).sum(0)
+        x_denominator = (1 + path_lens) * rho
+        x_next = np.maximum(0, x_numerator / x_denominator)
+
+        # z update
+        b = -lambda1[:,None] - lambda2 + lambda5 + rho * (-c[:,None] + s[:,None] - x_next[:])
+        import pdb; pdb.set_trace()
+        z_next = -A_inv @ b
+         
+        # s update
+        
+        # lambda update
+
+
+naive_admm_solver(
+    problem,
+    pi_e,
+    0.5,
+    np.zeros((K,)), np.zeros((V*V, K)), np.zeros((V*V,)),
+    np.zeros((V*V,)), np.zeros((V*V, K)), np.zeros((K,)), np.zeros((V*V,)), np.zeros((V*V, K)),
+)
+
+import pdb; pdb.set_trace()
