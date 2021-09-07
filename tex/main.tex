@@ -171,10 +171,12 @@ attention to terms of $\mcL_\rho$ involving $x$ and setting the derivative equal
 \begin{align*}
 0
 &= \nabla_{x_p}(-x_p + \lambda_{2,p}(d_p - x_p - s_p) + \sum_{e\in p}\lambda_{3,pe}(x_p - z_{pe})
-+ (\rho/2)((d_p - x_p - s_p) + \sum_{e \in p}(x_p - z_{pe})^2))\\
-&= -1 -\lambda_{2,p} + \sum_{e \in p}\lambda_{3,pe} + \rho\sum_{e \in p} (x_p - z_{pe})\\
-x_p &= \max(0,\frac{1 + \lambda_{2,p} - \sum_{e \in p}\lambda_{3,pe} + \rho \sum_{e\in p} z_{pe}}
-{|p|\rho}).
++ (\rho/2)((d_p - x_p - s_p)^2 + \sum_{e \in p}(x_p - z_{pe})^2))\\
+&= -1 -\lambda_{2,p} + \sum_{e \in p}\lambda_{3,pe} + \rho(-d_p + x_p + s_p)
+    +\rho\sum_{e \in p} (x_p - z_{pe})\\
+x_p &= \max(0,\frac{1 + \lambda_{2,p} - \sum_{e \in p}\lambda_{3,pe}
+    + \rho(d_p - s_p + \sum_{e\in p} z_{pe})}
+{(1+|p|)\rho}).
 \end{align*}
 
 We perform a similar computation for $\argmin_{z} \mcL_\rho(x^{k+1},z,s^k,\lambda^k)$:

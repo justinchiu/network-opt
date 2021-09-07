@@ -162,9 +162,11 @@ s = s.reshape(-1)
 x, z, s, l1, l2 = naive_admm_solver(
     problem,
     pi_e,
-    0.8,
+    1,
     np.zeros((K,)), np.zeros((V*V, K)), s,
-    np.zeros((V*V,)), np.zeros((V*V, K))
+    np.zeros((V*V,)), np.zeros((V*V, K)),
+    num_iters = 1000,
 )
+print(s)
 
 import pdb; pdb.set_trace()
