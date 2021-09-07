@@ -106,7 +106,7 @@ def naive_admm_solver(
     num_paths_for_edge = pi_e_flat.sum(-1)
 
     A_invs = [
-        np.linalg.inv(np.ones((k, k)) + 2 * np.eye(k))
+        np.linalg.inv(np.ones((k, k)) + np.eye(k))
         if k > 0 else None
         for k in num_paths_for_edge.tolist()
     ]
@@ -115,11 +115,11 @@ def naive_admm_solver(
         # x update
         #x_numerator = 1 - (lambda2 * pi_e_flat).sum(0) - lambda3 + rho * (pi_e_flat * z).sum(0)
         x_numerator = 1 - (lambda2 * pi_e_flat).sum(0) + rho * (pi_e_flat * z).sum(0)
-        x_denominator = (1 + path_lens) * rho
+        x_denominator = path_lens * rho
         x = np.maximum(0, x_numerator / x_denominator)
+        import pdb; pdb.set_trace()
 
         # z update
-        z_next = np.zeros((V*V, K))
         for e in range(c.size):
             if A_invs[e] is not None:
                 A_inv = A_invs[e]
@@ -129,13 +129,12 @@ def naive_admm_solver(
                     + rho * (-c[e,None] + s[e,None] - x[path_ix]))
                 z[e, path_ix] = -A_inv @ b
         z = np.maximum(0, z)
+        import pdb; pdb.set_trace()
          
         # s update
         s = np.maximum(0,
             #(lambda1 - lambda4 + rho * (c - (pi_e_flat * z).sum(-1))) / (2 * rho))
-            (lambda1 + rho * (c - (pi_e_flat * z).sum(-1))) / (2 * rho))
-
-        print(s)
+            (lambda1 + rho * (c - (pi_e_flat * z).sum(-1))) / (rho))
         
         # lambda update
         lambda1 += rho * (c - (pi_e_flat * z).sum(-1) - s)
