@@ -57,8 +57,9 @@ A path contributes a constant amount of traffic $x_p$ to each included edge $e\i
 We denote the set of paths that pass through a particular edge by
 $\pi(e) = \set{p \mid e \in p}$.
 We additionally have the following constraints: traffic must be nonnegative $x_p \geq 0$,
-and each edge has a capacity constraint so that the total traffic on that
-edge cannot exceed $ c_e \ge \sum_{p\in\pi(e)} x_p $.
+each edge has a capacity constraint so that the total traffic on that
+edge cannot exceed $ c_e \ge \sum_{p\in\pi(e)} x_p $,
+and we should not exceed the demand for traffic on a particular path $x_p \leq d_p$.
 
 This yields the following optimization problem:
 \begin{equation}
@@ -66,6 +67,7 @@ This yields the following optimization problem:
 \begin{aligned}
 \textrm{maximize } \quad & \sum_{p} x_p \textrm{ or } \sum_{e} \sum_{p\in\pi(e)}x_{p}\\
 \textrm{subject to } \quad &\sum_{p\in\pi(e)}x_p \le c_e, \forall e\\
+&x_p \le d_p, \forall p\\
 & x_p \geq 0, \forall p.
 \end{aligned}
 \end{equation}
@@ -98,12 +100,14 @@ The new problem is given by
 \begin{aligned}
 \textrm{minimize } \quad & f(x) + g(z) + h(s)\\
 \textrm{subject to } \quad &c_e - \sum_{p\in\pi(e)}z_{pe} - s_{e} = 0, \forall e\\
+& d_p - x_p - s_p = 0, \forall p\\
 &x_p - z_{pe} = 0, \forall e, \forall p \in \pi(e)\\
 &x,s,z \succeq 0,
 \end{aligned}
 \end{equation}
 where $f(x) = -\sum_p x_p$,
-$g(z) = \sum_{pe} \bar\delta(z_{pe} \ge 0)$, $h(s) = \sum_{e} \bar\delta(s_{e} \ge 0)$.
+$g(z) = \sum_{pe} \bar\delta(z_{pe} \ge 0)$,
+$h(s) = \sum_{e} \bar\delta(s_{e} \ge 0)+ \sum_{p} \bar\delta(s_{p} \ge 0) $.
 We use the delta notation to indicate a function
 $$
 \bar\delta(b) = \begin{cases}
@@ -111,14 +115,15 @@ $$
     0 & \textrm{o.w.}
 \end{cases}
 $$
-This problem is decomposable along each path (for $x$) or edge (for $z$ and $s$) as follows:
+This problem is decomposable along each path (for $x$) or edge (for $z$) as follows:
 \begin{equation}
 \label{eqn:network-opt-sep}
 \begin{aligned}
 \textrm{minimize } \quad & -\sum_p x_p
     + \sum_e\sum_{p \in \pi(e)} \bar\delta(z_{pe})
-    + \sum_e \bar\delta(s_{e})\\
+    + \sum_e \bar\delta(s_{e}) + \sum_p \bar\delta(s_p)\\
 \textrm{subject to } \quad &c_e - \sum_{p\in\pi(e)}z_{pe} - s_{e} = 0, \forall e\\
+& d_p - x_p - s_p = 0, \forall p\\
 &x_p - z_{pe} = 0, \forall e, \forall p \in \pi(e)\\
 &x,s,z \succeq 0.
 \end{aligned}
@@ -129,6 +134,7 @@ The augmented Lagrangian for this problem is
     \label{eqn:network-lagrangian}
     \mcL_\rho(x,z,s,\lambda) =-\sum_p x_p + \sum_e\sum_{p\in\pi(e)} \bar\delta(z_{pe})
         + \sum_{e} \bar\delta(s_{e})
+        + \sum_{p} \bar\delta(s_{p})
         + \lambda^\top F(x,z,s)
         + (\rho/2)\| F(x,z,s) \|_2^2,
 \end{equation}
@@ -136,7 +142,8 @@ where
 $$F(x,z,s) =
 \begin{bmatrix}
 F_1 \\
-F_2
+F_2 \\
+F_3
 \end{bmatrix}
 $$
 with $F_1 \in \R^{|E|}, F_2\in\R^{K|E|}$
@@ -144,10 +151,11 @@ with $F_1 \in \R^{|E|}, F_2\in\R^{K|E|}$
 Each subvector is given by
 $$
     [F_1]_e = c_e - \sum_{p\in\pi(e)}z_{pe} - s_{e},
-    [F_2]_{pe} = x_p - z_{pe},
+    [F_2]_{p} = d_p - x_p - s_p,
+    [F_3]_{pe} = x_p - z_{pe},
 $$
-The elements of $\lambda$ corresponding to $F_1$ are $\lambda_{1,e}$ and
-$F_2$ are $\lambda_{2,pe}$.
+The elements of $\lambda$ corresponding to $F_1$ are $\lambda_{1,e}$,
+$F_2$ are $\lambda_{2,p}$, and $F_3$ are $\lambda_{3,pe}$.
 
 The ADMM updates are as follows:
 \begin{equation}
@@ -162,10 +170,10 @@ We can compute $\argmin_{x} \mcL_\rho(x,z^k,s^k,\lambda^k)$ by restricting our
 attention to terms of $\mcL_\rho$ involving $x$ and setting the derivative equal to 0:
 \begin{align*}
 0
-&= \nabla_{x_p}(-x_p + \sum_{e\in p}\lambda_{2,pe}(x_p - z_{pe})
-+ (\rho/2)(\sum_{e \in p}(x_p - z_{pe})^2))\\
-&= -1 + \sum_{e \in p}\lambda_{2,pe} + \rho\sum_{e \in p} (x_p - z_{pe})\\
-x_p &= \max(0,\frac{1 - \sum_{e \in p}\lambda_{2,pe} + \rho \sum_{e\in p} z_{pe}}
+&= \nabla_{x_p}(-x_p + \lambda_{2,p}(d_p - x_p - s_p) + \sum_{e\in p}\lambda_{3,pe}(x_p - z_{pe})
++ (\rho/2)((d_p - x_p - s_p) + \sum_{e \in p}(x_p - z_{pe})^2))\\
+&= -1 -\lambda_{2,p} + \sum_{e \in p}\lambda_{2,pe} + \rho\sum_{e \in p} (x_p - z_{pe})\\
+x_p &= \max(0,\frac{1 + \lambda_{2,p} - \sum_{e \in p}\lambda_{2,pe} + \rho \sum_{e\in p} z_{pe}}
 {|p|\rho}).
 \end{align*}
 
@@ -173,9 +181,9 @@ We perform a similar computation for $\argmin_{z} \mcL_\rho(x^{k+1},z,s^k,\lambd
 \begin{align*}
 0
 &= \nabla_{z_{pe}}\bar\delta(z_{pe}) + \lambda_{1,e}(c_e - \sum_{p'\in\pi(e)} z_{p'e} - s_{e})
-    + \lambda_{2,pe}(x_p - z_{pe})\\
+    + \lambda_{3,pe}(x_p - z_{pe})\\
 & \qquad + (\rho/2)((c_e - \sum_{p'\in\pi(e)} z_{p'e} - s_e)^2 + (x_p - z_{pe})^2)\\
-&= -\lambda_{1,e} - \lambda_{2,pe}
+&= -\lambda_{1,e} - \lambda_{3,pe}
     + \rho(-c_e + \sum_{p'\in\pi(e)} z_{p'e} + s_e  + z_{pe} - x_p).
 \end{align*}
 This gives us a system of equations for each edge $0 = A_ez_e + b_e$
@@ -183,7 +191,7 @@ allowing us to solve for $z_e = -A_e^{-1}b_e$.
 Let $P_e= |\pi(e)|$. We then have
 \begin{align*}
 A_e &= \mathbf{1}_{P_e\times P_e} + I_{P_e\times P_e}\\
-[b_e]_p &= -\lambda_{1,e} - \lambda_{2,pe}
+[b_e]_p &= -\lambda_{1,e} - \lambda_{3,pe}
     + \rho(-c_e + s_e - x_p).
 \end{align*}
 
@@ -193,7 +201,15 @@ Then, for $\argmin_{s} \mcL_\rho(x^{k+1},z^{k+1},s,y^k)$:
 &= \nabla_{s_{e}}\bar\delta(s_{e}) + \lambda_{1,e}(c_e - \sum_{p\in\pi(e)} z_{pe} - s_{e})
     + (\rho/2)((c_e - \sum_{p\in\pi(e)} z_{pe} - s_{e})^2)\\
 &= -\lambda_{1,e} + \rho(-c_e + \sum_{p\in\pi(e)} z_{pe} + s_e)\\
-s_{e} &= \max(0,\frac{\lambda_{1,e} + \rho(c_e - \sum_{p\in\pi(e)}z_{pe})}{\rho}).
+s_{e} &= \max(0,\frac{\lambda_{1,e} + \rho(c_e - \sum_{p\in\pi(e)}z_{pe})}{\rho}),
+\end{align*}
+and
+\begin{align*}
+0
+&= \nabla_{s_{p}}\bar\delta(s_{p}) + \lambda_{2,p}(d_p - x_p - s_p)
+    + (\rho/2)((d_p - x_p - s_{p})^2)\\
+&= -\lambda_{2,p} + \rho(-d_p + x_p + s_p)\\
+s_{e} &= \max(0,\frac{\lambda_{2,p} + \rho(d_p - x_p}{\rho}).
 \end{align*}
 
 \end{document}
