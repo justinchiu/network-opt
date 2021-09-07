@@ -42,11 +42,23 @@ def gen_problem(
         paths.append(valid_paths[np.random.choice(len(valid_paths))])
 
     constraints = np.random.uniform(min_constraint, max_constraint, adjacency_matrix.shape)
+    constraints = constraints * adjacency_matrix
+    # by defn, have constraint of 0 if there is no edge
 
     return Problem(adjacency_matrix, graph, paths, constraints)
 
 
 problem = gen_problem(7, 13, 3, 1, 5, 3, 3)
-import pdb; pdb.set_trace()
 
+G = problem.graph
+pos = nx.spring_layout(G, seed=225)  # Seed for reproducible layout
+nx.draw(G, pos, with_labels=True)
+#node_labels = nx.get_node_attributes(G,'state')
+#nx.draw_networkx_labels(G, pos, labels = node_labels)
+#edge_labels = nx.get_edge_attributes(G,'state')
+#nx.draw_networkx_edge_labels(G, pos, edge_labels = edge_labels)
 
+#plt.savefig('this.png')
+plt.show()
+
+#import pdb; pdb.set_trace()

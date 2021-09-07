@@ -34,7 +34,7 @@
 \usepackage[utf8]{inputenc}
 
 
-\title{Network Stuff}
+\title{Network Optimization}
 
 \author{Justin Chiu \\
   Cornell Tech \\
@@ -58,7 +58,7 @@ We denote the set of paths that pass through a particular edge by
 $\pi(e) = \set{p \mid e \in p}$.
 We additionally have the following constraints: traffic must be nonnegative $x_p \geq 0$,
 and each edge has a capacity constraint so that the total traffic on that
-edge cannot exceed $\sum_{p\in\pi(e)} x_p \le c_e$.
+edge cannot exceed $ c_e \ge \sum_{p\in\pi(e)} x_p $.
 
 This yields the following optimization problem:
 \begin{equation}
@@ -86,11 +86,10 @@ which applies to problems of the form
 \end{equation}
 
 To massage the problem in Eqn.~\ref{eqn:network-opt} into the correct form,
-we will assume the first objective, which assigns equal weight to each path.
-We will introduce two sets of new variables, slack variables $s_e$ for each edge\footnote{
+We will introduce two sets of new variables: slack variables $s_e$ for each edge\footnote{
 The slack variable replace the inequality constraints with equality constraints.
 }
-and edge weights $z_{pe}$ for each edge and path.
+and decoupled edge weights $z_{pe}$ for each edge and path.
 
 The new problem is given by
 \begin{equation}
