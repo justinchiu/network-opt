@@ -72,16 +72,16 @@ for p, path in enumerate(problem.paths):
         pi_e[s,t,p] = 1
 
 # CVXPY
-x = cp.Variable(K)
-objective = cp.Minimize(-cp.sum(x))
+X = cp.Variable(K)
+objective = cp.Minimize(-cp.sum(X))
 constraints = [
-    pi_e.reshape(V*V, K) @ x <= problem.constraints.reshape(V*V),
-    x >= 0,
+    pi_e.reshape(V*V, K) @ X <= problem.constraints.reshape(V*V),
+    X >= 0,
 ]
 
 prob = cp.Problem(objective, constraints)
 result = prob.solve()
-print(x.value)
+print(X.value)
 print(constraints[0].dual_value)
 
 
@@ -94,35 +94,60 @@ def naive_admm_solver(
     rho,
     x, z, s,
     lambda1, lambda2, lambda3, lambda4, lambda5,
-    num_iters = 10,
+    num_iters = 100,
 ):
     c = problem.constraints.reshape(-1)
 
     path_lens = np.array([len(p) for p in problem.paths])
 
     L = sum(path_lens)
-    A = np.ones((L, L)) + 2 * np.eye(L)
-    A_inv = np.linalg.inv(A)
 
-    pi_e_flat = pi_e.reshape(V*V, K)
+    pi_e_flat = pi_e.reshape(V*V, K).astype(int)
+    num_paths_for_edge = pi_e_flat.sum(-1)
+
+    A_invs = [
+        np.linalg.inv(np.ones((k, k)) + 2 * np.eye(k))
+        if k > 0 else None
+        for k in num_paths_for_edge.tolist()
+    ]
 
     for iter in range(num_iters):
         # x update
-        x_numerator = 1 - (lambda2 * pi_e_flat).sum(0) - lambda3 + rho * (pi_e_flat * z).sum(0)
+        #x_numerator = 1 - (lambda2 * pi_e_flat).sum(0) - lambda3 + rho * (pi_e_flat * z).sum(0)
+        x_numerator = 1 - (lambda2 * pi_e_flat).sum(0) + rho * (pi_e_flat * z).sum(0)
         x_denominator = (1 + path_lens) * rho
-        x_next = np.maximum(0, x_numerator / x_denominator)
+        x = np.maximum(0, x_numerator / x_denominator)
 
         # z update
-        b = -lambda1[:,None] - lambda2 + lambda5 + rho * (-c[:,None] + s[:,None] - x_next[:])
-        import pdb; pdb.set_trace()
-        z_next = -A_inv @ b
+        z_next = np.zeros((V*V, K))
+        for e in range(c.size):
+            if A_invs[e] is not None:
+                A_inv = A_invs[e]
+                path_ix = pi_e_flat[e].astype(bool)
+                #b = (-lambda1[e,None] - lambda2[e, path_ix] + lambda5[e, path_ix]
+                b = (-lambda1[e,None] - lambda2[e, path_ix]
+                    + rho * (-c[e,None] + s[e,None] - x[path_ix]))
+                z[e, path_ix] = -A_inv @ b
+        z = np.maximum(0, z)
          
         # s update
+        s = np.maximum(0,
+            #(lambda1 - lambda4 + rho * (c - (pi_e_flat * z).sum(-1))) / (2 * rho))
+            (lambda1 + rho * (c - (pi_e_flat * z).sum(-1))) / (2 * rho))
+
+        print(s)
         
         # lambda update
+        lambda1 += rho * (c - (pi_e_flat * z).sum(-1) - s)
+        lambda2 += rho * (x[None] - z)
+        #lambda3 += rho * (x)
+        #lambda4 += rho * (s)
+        #lambda5 += rho * (z)
+
+    return x, z, s, lambda1, lambda2, lambda3, lambda4, lambda5
 
 
-naive_admm_solver(
+x, z, s, l1, l2, l3, l4, l5 = naive_admm_solver(
     problem,
     pi_e,
     0.5,

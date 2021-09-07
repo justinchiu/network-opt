@@ -136,24 +136,18 @@ where
 $$F(x,z,s) =
 \begin{bmatrix}
 F_1 \\
-F_2 \\
-F_3 \\
-F_4 \\
-F_5
+F_2
 \end{bmatrix}
 $$
-with $F_1 \in \R^{|E|}, F_2\in\R^{K|E|}F_3\in\R^{K},F_4\in\R^{|E|},F_5\in\R^{K|E|}$
+with $F_1 \in \R^{|E|}, F_2\in\R^{K|E|}$
 ($|E|$ the number of edges and $K$ the number of paths).
 Each subvector is given by
 $$
     [F_1]_e = c_e - \sum_{p\in\pi(e)}z_{pe} - s_{e},
     [F_2]_{pe} = x_p - z_{pe},
-    [F_3]_p = x_p,
-    [F_4]_{e} = s_{e},
-    [F_5]_{pe} = z_{pe}.
 $$
-The elements of $\lambda$ corresponding to $F_1$ are $\lambda_{1,e}$,
-$F_2$ are $\lambda_{2,pe}$, and so forth.
+The elements of $\lambda$ corresponding to $F_1$ are $\lambda_{1,e}$ and
+$F_2$ are $\lambda_{2,pe}$.
 
 The ADMM updates are as follows:
 \begin{equation}
@@ -168,10 +162,10 @@ We can compute $\argmin_{x} \mcL_\rho(x,z^k,s^k,\lambda^k)$ by restricting our
 attention to terms of $\mcL_\rho$ involving $x$ and setting the derivative equal to 0:
 \begin{align*}
 0
-&= \nabla_{x_p}(-x_p + \sum_{e\in p}\lambda_{2,pe}(x_p - z_{pe}) + \lambda_{3,p} x_p
+&= \nabla_{x_p}(-x_p + \sum_{e\in p}\lambda_{2,pe}(x_p - z_{pe})
 + (\rho/2)(x_p^2 + \sum_{e \in p}(x_p - z_{pe})^2))\\
-&= -1 + \sum_{e \in p}\lambda_{2,pe} + \lambda_{3,p} + \rho x_p + \rho\sum_{e \in p} (x_p - z_{pe})\\
-x_p &= \max(0,\frac{1 - \sum_{e \in p}\lambda_{2,pe} - \lambda_{3,p} + \rho \sum_{e\in p} z_{pe}}
+&= -1 + \sum_{e \in p}\lambda_{2,pe} + \rho x_p + \rho\sum_{e \in p} (x_p - z_{pe})\\
+x_p &= \max(0,\frac{1 - \sum_{e \in p}\lambda_{2,pe} + \rho \sum_{e\in p} z_{pe}}
 {(1 + |p|)\rho}).
 \end{align*}
 
@@ -179,9 +173,9 @@ We perform a similar computation for $\argmin_{z} \mcL_\rho(x^{k+1},z,s^k,\lambd
 \begin{align*}
 0
 &= \nabla_{z_{pe}}\bar\delta(z_{pe}) + \lambda_{1,e}(c_e - \sum_{p\in\pi(e)} z_{pe} - s_{e})
-    + \lambda_{2,pe}(x_p - z_{pe}) + \lambda_{5,pe}z_{pe}\\
+    + \lambda_{2,pe}(x_p - z_{pe})\\
 & \qquad + (\rho/2)((c_e - \sum_{p\in\pi(e)} z_{pe} - s_e)^2 + (x_p - z_{pe})^2 + z_{pe}^2)\\
-&= -\lambda_{1,e} - \lambda_{2,pe} + \lambda_{5,pe}
+&= -\lambda_{1,e} - \lambda_{2,pe}
     + \rho(-c_e + \sum_{p\in\pi(e)} z_{pe} + s_e  + 2z_{pe} - x_p).
 \end{align*}
 This gives us a system of equations for each edge $0 = A_ez_e + b_e$
@@ -189,7 +183,7 @@ allowing us to solve for $z_e = -A_e^{-1}b_e$.
 Let $P_e= |\pi(e)|$. We then have
 \begin{align*}
 A_e &= \mathbf{1}_{P_e\times P_e} + 2I_{P_e\times P_e}\\
-[b_e]_p &= -\lambda_{1,e} - \lambda_{2,pe} + \lambda_{5,pe}
+[b_e]_p &= -\lambda_{1,e} - \lambda_{2,pe}
     + \rho(-c_e + s_e - x_p).
 \end{align*}
 
@@ -197,10 +191,9 @@ Then, for $\argmin_{s} \mcL_\rho(x^{k+1},z^{k+1},s,y^k)$:
 \begin{align*}
 0
 &= \nabla_{s_{e}}\bar\delta(s_{e}) + \lambda_{1,e}(c_e - \sum_{p\in\pi(e)} z_{pe} - s_{e})
- + \lambda_{4,e}s_{e}
     + (\rho/2)((c_e - \sum_{p\in\pi(e)} z_{pe} - s_{e})^2 + s_{e}^2)\\
-&= -\lambda_{1,e} + \lambda_{4,e} + \rho(-c_e + \sum_{p\in\pi(e)} z_{pe} + 2s_e)\\
-s_{e} &= \max(0,\frac{\lambda_{1,e} - \lambda_{4,e} + \rho(c_e - \sum_{p\in\pi(e)}z_{pe})}{2\rho}).
+&= -\lambda_{1,e} + \rho(-c_e + \sum_{p\in\pi(e)} z_{pe} + 2s_e)\\
+s_{e} &= \max(0,\frac{\lambda_{1,e} + \rho(c_e - \sum_{p\in\pi(e)}z_{pe})}{2\rho}).
 \end{align*}
 
 \end{document}
