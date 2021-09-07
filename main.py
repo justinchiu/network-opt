@@ -121,7 +121,8 @@ def naive_admm_solver(
     for iter in range(num_iters):
         # x update
         x_numerator = 1 - (lambda2 * pi_e_flat).sum(0) + rho * (pi_e_flat * z).sum(0)
-        x_denominator = path_lens * rho
+        #x_denominator = (path_lens) * rho
+        x_denominator = (path_lens-1) * rho # quadratic objective
         x = np.maximum(0, x_numerator / x_denominator)
 
         # z update
