@@ -71,6 +71,9 @@ This yields the following optimization problem:
 \end{equation}
 The first objective assigns equal weight to each path, while the second
 objective weights paths based on length.
+We focus on the first objective, since the goal is to maximize the amount of traffic
+each customer receives (represented as a path) rather than the congestion
+of the network.
 
 While this form is compact, we would like to apply the ADMM algorithm,
 which applies to problems of the form
