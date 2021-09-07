@@ -57,7 +57,7 @@ A path contributes a constant amount of traffic $x_p$ to each included edge $e\i
 We denote the set of paths that pass through a particular edge by
 $\pi(e) = \set{p \mid e \in p}$.
 We additionally have the following constraints: traffic must be nonnegative $x_p \geq 0$,
-and each edge has a capacity constraint that the total traffic on that
+and each edge has a capacity constraint so that the total traffic on that
 edge cannot exceed $\sum_{p\in\pi(e)} x_p \le c_e$.
 
 This yields the following optimization problem:
