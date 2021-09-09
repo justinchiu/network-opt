@@ -1,0 +1,217 @@
+% This must be in the first 5 lines to tell arXiv to use pdfLaTeX, which is strongly recommended.
+\pdfoutput=1
+% In particular, the hyperref package requires pdfLaTeX in order to break URLs across lines.
+
+\documentclass[11pt]{article}
+
+\usepackage[a4paper, total={6in, 8in}]{geometry}
+\usepackage{lineno}
+\linenumbers
+
+\usepackage{caption,subcaption}
+
+\usepackage{mystyle}
+
+\usetikzlibrary{calc,patterns,angles,quotes}    
+\usetikzlibrary{decorations.pathmorphing}
+\tikzset{snake it/.style={decorate, decoration=snake}}
+
+\usepackage{natbib}
+\bibliographystyle{abbrvnat}
+\usepackage{hyperref}
+
+% Standard package includes
+\usepackage{times}
+\usepackage{latexsym}
+
+% For proper rendering and hyphenation of words containing Latin characters (including in bib files)
+\usepackage[T1]{fontenc}
+% For Vietnamese characters
+% \usepackage[T5]{fontenc}
+% See https://www.latex-project.org/help/documentation/encguide.pdf for other character sets
+
+% This assumes your files are encoded as UTF8
+\usepackage[utf8]{inputenc}
+
+
+\title{Network Optimization}
+
+\author{Justin Chiu \\
+  Cornell Tech \\
+  \texttt{jtc257@cornell.edu}}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+None
+\end{abstract}
+
+\section{Network Traffic Problem}
+In this section, we consider the problem of optimizing network traffic.
+A network is a graph $G = (V,E)$ with vertices $v_i\in V$ and edges
+$e_{ij}\in E = V\times V$.
+We would like to maximize the total traffic through a series of $K$ paths across the network.
+A path is a sequence of edges $p_{st}^k = (e_{sv_1},e_{v_1v_2},\ldots,e_{v_mt})$
+from source vertex $s$ to target vertex $t$.
+A path contributes a constant amount of traffic $x_p$ to each included edge $e\in p$.
+We denote the set of paths that pass through a particular edge by
+$\pi(e) = \set{p \mid e \in p}$.
+We additionally have the following constraints: traffic must be nonnegative $x_p \geq 0$,
+each edge has a capacity constraint so that the total traffic on that
+edge cannot exceed $ c_e \ge \sum_{p\in\pi(e)} x_p $,
+and we should not exceed the demand for traffic on a particular path $x_p \leq d_p$.
+
+This yields the following optimization problem:
+\begin{equation}
+\label{eqn:network-opt}
+\begin{aligned}
+\textrm{maximize } \quad & \sum_{p} x_p \textrm{ or } \sum_{e} \sum_{p\in\pi(e)}x_{p}\\
+\textrm{subject to } \quad &\sum_{p\in\pi(e)}x_p \le c_e, \forall e\\
+&x_p \le d_p, \forall p\\
+& x_p \geq 0, \forall p.
+\end{aligned}
+\end{equation}
+The first objective assigns equal weight to each path, while the second
+objective weights paths based on length.
+We focus on the first objective, since the goal is to maximize the amount of traffic
+each customer receives (represented as a path) rather than the congestion
+of the network.
+
+While this form is compact, we would like to apply the ADMM algorithm,
+which applies to problems of the form
+\begin{equation}
+\label{eqn:admm}
+\begin{aligned}
+\textrm{minimize } \quad & f(x) + g(z)\\
+\textrm{subject to } \quad & Ax + Bz = c.
+\end{aligned}
+\end{equation}
+
+To massage the problem in Eqn.~\ref{eqn:network-opt} into the correct form,
+we will introduce two sets of new variables: slack variables $s_e$ for each edge\footnote{
+The slack variable replaces the inequality constraints $c_e - \sum_p x_p \ge 0$
+with equality constraints $c_e - \sum_p x_p - s_e = 0$.
+}
+and decoupled edge weights $z_{pe}$ for each edge and path.
+
+The new problem is given by
+\begin{equation}
+\label{eqn:network-opt-std}
+\begin{aligned}
+\textrm{minimize } \quad & f(x) + g(z) + h(s)\\
+\textrm{subject to } \quad &c_e - \sum_{p\in\pi(e)}z_{pe} - s_{e} = 0, \forall e\\
+& d_p - x_p - s_p = 0, \forall p\\
+&x_p - z_{pe} = 0, \forall e, \forall p \in \pi(e)\\
+&x,s,z \succeq 0,
+\end{aligned}
+\end{equation}
+where $f(x) = -\sum_p x_p$,
+$g(z) = \sum_{pe} \bar\delta(z_{pe} \ge 0)$,
+$h(s) = \sum_{e} \bar\delta(s_{e} \ge 0)+ \sum_{p} \bar\delta(s_{p} \ge 0) $.
+We use the delta notation to indicate a function
+$$
+\bar\delta(b) = \begin{cases}
+    \infty & \textrm{if condition } b \textrm{ does not hold},\\
+    0 & \textrm{o.w.}
+\end{cases}
+$$
+This problem is decomposable along each path (for $x$) or edge (for $z$) as follows:
+\begin{equation}
+\label{eqn:network-opt-sep}
+\begin{aligned}
+\textrm{minimize } \quad & -\sum_p x_p
+    + \sum_e\sum_{p \in \pi(e)} \bar\delta(z_{pe})
+    + \sum_e \bar\delta(s_{e}) + \sum_p \bar\delta(s_p)\\
+\textrm{subject to } \quad &c_e - \sum_{p\in\pi(e)}z_{pe} - s_{e} = 0, \forall e\\
+& d_p - x_p - s_p = 0, \forall p\\
+&x_p - z_{pe} = 0, \forall e, \forall p \in \pi(e)\\
+&x,s,z \succeq 0.
+\end{aligned}
+\end{equation}
+
+The augmented Lagrangian for this problem is
+\begin{equation}
+    \label{eqn:network-lagrangian}
+    \mcL_\rho(x,z,s,\lambda) =-\sum_p x_p + \sum_e\sum_{p\in\pi(e)} \bar\delta(z_{pe})
+        + \sum_{e} \bar\delta(s_{e})
+        + \sum_{p} \bar\delta(s_{p})
+        + \lambda^\top F(x,z,s)
+        + (\rho/2)\| F(x,z,s) \|_2^2,
+\end{equation}
+where
+$$F(x,z,s) =
+\begin{bmatrix}
+F_1 \\
+F_2 \\
+F_3
+\end{bmatrix}
+$$
+with $F_1 \in \R^{|E|}, F_2\in\R^{K|E|}$
+($|E|$ the number of edges and $K$ the number of paths).
+Each subvector is given by
+$$
+    [F_1]_e = c_e - \sum_{p\in\pi(e)}z_{pe} - s_{e},
+    [F_2]_{p} = d_p - x_p - s_p,
+    [F_3]_{pe} = x_p - z_{pe},
+$$
+The elements of $\lambda$ corresponding to $F_1$ are $\lambda_{1,e}$,
+$F_2$ are $\lambda_{2,p}$, and $F_3$ are $\lambda_{3,pe}$.
+
+The ADMM updates are as follows:
+\begin{equation}
+    \begin{aligned}
+        x^{k+1} := \argmin_{x} \mcL_\rho(x,z^k,s^{k},\lambda^k)\\
+        z^{k+1} := \argmin_{z} \mcL_\rho(x^{k+1},z,s^{k},\lambda^k)\\
+        s^{k+1} := \argmin_{s} \mcL_\rho(x^{k+1},z^{k+1},s,\lambda^k)\\
+        \lambda^{k+1} := \lambda^k + \rho(F(x^{k+1},z^{k+1},s^{k+1})).
+    \end{aligned}
+\end{equation}
+We can compute $\argmin_{x} \mcL_\rho(x,z^k,s^k,\lambda^k)$ by restricting our
+attention to terms of $\mcL_\rho$ involving $x$ and setting the derivative equal to 0:
+\begin{align*}
+0
+&= \nabla_{x_p}(-x_p + \lambda_{2,p}(d_p - x_p - s_p) + \sum_{e\in p}\lambda_{3,pe}(x_p - z_{pe})
++ (\rho/2)((d_p - x_p - s_p)^2 + \sum_{e \in p}(x_p - z_{pe})^2))\\
+&= -1 -\lambda_{2,p} + \sum_{e \in p}\lambda_{3,pe} + \rho(-d_p + x_p + s_p)
+    +\rho\sum_{e \in p} (x_p - z_{pe})\\
+x_p &= \max(0,\frac{1 + \lambda_{2,p} - \sum_{e \in p}\lambda_{3,pe}
+    + \rho(d_p - s_p + \sum_{e\in p} z_{pe})}
+{(1+|p|)\rho}).
+\end{align*}
+
+We perform a similar computation for $\argmin_{z} \mcL_\rho(x^{k+1},z,s^k,\lambda^k)$:
+\begin{align*}
+0
+&= \nabla_{z_{pe}}\bar\delta(z_{pe}) + \lambda_{1,e}(c_e - \sum_{p'\in\pi(e)} z_{p'e} - s_{e})
+    + \lambda_{3,pe}(x_p - z_{pe})\\
+& \qquad + (\rho/2)((c_e - \sum_{p'\in\pi(e)} z_{p'e} - s_e)^2 + (x_p - z_{pe})^2)\\
+&= -\lambda_{1,e} - \lambda_{3,pe}
+    + \rho(-c_e + \sum_{p'\in\pi(e)} z_{p'e} + s_e  + z_{pe} - x_p).
+\end{align*}
+This gives us a system of equations for each edge $0 = A_ez_e + b_e$
+allowing us to solve for $z_e = -A_e^{-1}b_e$.
+Let $P_e= |\pi(e)|$. We then have
+\begin{align*}
+A_e &= \mathbf{1}_{P_e\times P_e} + I_{P_e\times P_e}\\
+[b_e]_p &= -\lambda_{1,e} - \lambda_{3,pe}
+    + \rho(-c_e + s_e - x_p).
+\end{align*}
+
+Then, for $\argmin_{s} \mcL_\rho(x^{k+1},z^{k+1},s,y^k)$:
+\begin{align*}
+0
+&= \nabla_{s_{e}}\bar\delta(s_{e}) + \lambda_{1,e}(c_e - \sum_{p\in\pi(e)} z_{pe} - s_{e})
+    + (\rho/2)((c_e - \sum_{p\in\pi(e)} z_{pe} - s_{e})^2)\\
+&= -\lambda_{1,e} + \rho(-c_e + \sum_{p\in\pi(e)} z_{pe} + s_e)\\
+s_{e} &= \max(0,\frac{\lambda_{1,e} + \rho(c_e - \sum_{p\in\pi(e)}z_{pe})}{\rho}),
+\end{align*}
+and
+\begin{align*}
+0
+&= \nabla_{s_{p}}\bar\delta(s_{p}) + \lambda_{2,p}(d_p - x_p - s_p)
+    + (\rho/2)((d_p - x_p - s_{p})^2)\\
+&= -\lambda_{2,p} + \rho(-d_p + x_p + s_p)\\
+s_{p} &= \max(0,\frac{\lambda_{2,p} + \rho(d_p - x_p)}{\rho}).
+\end{align*}
+
+\end{document}
