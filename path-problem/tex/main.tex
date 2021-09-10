@@ -47,9 +47,21 @@ None
 \end{abstract}
 
 \section{Network Traffic Problem}
-In this section, we consider the problem of optimizing network traffic.
+We consider the problem of maximizing network traffic.
 A network is a graph $G = (V,E)$ with vertices $v_i\in V$ and edges
 $e_{ij}\in E = V\times V$.
+Each edge has an associated capacity limit $c_{e_{ij}}$.
+We get a set of requests, represented as source $s_r$ and target $t_r$ pairs,
+plus a traffic demand $d_r$.
+We would like to fulfill the demand for each request as much as possible,
+without violating edge capacity constraints.
+
+To do so, we split traffic across paths from each source to the respective
+target so that their sum total traffic is as close to the request's demand
+as possible (without exceeding it).
+For each source-target pair $(s,t)$, there are multiple paths from $s$ to $t$.
+We denote the set of valid paths for a particular source-target pair
+$\bp_{st} = \set{(e_{sa}, e_{ab}, \ldots, e_{zt})}$.
 We would like to maximize the total traffic through a series of $K$ paths across the network.
 A path is a sequence of edges $p_{st}^k = (e_{sv_1},e_{v_1v_2},\ldots,e_{v_mt})$
 from source vertex $s$ to target vertex $t$.
