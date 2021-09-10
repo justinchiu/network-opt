@@ -52,16 +52,19 @@ A network is a graph $G = (V,E)$ with vertices $v\in V$ and edges
 $e = (i,j)\in E = V\times V$.
 Each edge $e$ has an associated capacity limit $c_e$.
 We get a set of requests,
-with each request $r$ represented as source and target pairs $(s,t)$,
+with each request $r$ represented as source and target pairs $(s,t)$,\footnote{
+We assume there is only one unique request for each source and target pair.
+}
 plus a traffic demand $d_r$.
 We would like to fulfill the demand for each request as much as possible,
-by splitting traffic across the $K_{st}$ valid paths
-$p_{stk} = ((s,a), (a,b), \ldots, (z,t))$ from $s$ to $t$:
-$\sum_{p\in r} x_p \le d_r$, where we should not exceed the request's demand.
+by splitting traffic across the $K_r$ valid paths
+$p_{rk} = ((s,a), (a,b), \ldots, (z,t))$ from $s$ to $t$:
+$\sum_{p\in r} x_p \le d_r$, where we should not exceed the request's demand
+(constraint [1]).
 We will say that $p\in r$ if $p$ is a valid path from $s\to t$.
 Additionally, we must ensure that edge traffic constraints hold.
 Multiple paths, as well as multiple requests, may result in overlapping traffic
-across particular edges, resulting in constraint (2):
+across particular edges, resulting in constraint [2]:
 $\sum_{p\in\pi(e)} x_{p} \le c_e$,
 where $\pi(e) = \set{p \mid e \in p}$.
 
@@ -71,8 +74,8 @@ This yields the following optimization problem:
 \begin{aligned}
 \textrm{maximize } \quad & \sum_r \sum_{p\in r} x_p\\
 \textrm{subject to } \quad
-&\sum_{p \in r}x_p \le d_r, \forall r\\
-&\sum_{p\in\pi(e)} x_p \le c_e, \forall e\\
+&\sum_{p \in r}x_p \le d_r, \forall r & [1]\\
+&\sum_{p\in\pi(e)} x_p \le c_e, \forall e & [2]\\
 & x_p \geq 0, \forall p.
 \end{aligned}
 \end{equation}
@@ -80,35 +83,24 @@ This yields the following optimization problem:
 While this form is compact, we would like the problem to
 separate over paths. This is not possible in Eqn.~\ref{eqn:network-opt}
 because constraint 2 couples the traffic in paths.
-In order to decouple this constraint, we will transform the problem by adding dummy
-variables $z_{stek}$ for the traffic contributed to each edge from each path $p_{stk}$.
-Afterwards, we will introduce slack variables for each of the resulting inequality constraints
-in order to apply the ADMM algorithm.
+In order to decouple this constraint, we will transform the problem by adding dummy variables.
+Afterwards, we will introduce slack variables to turn each of the resulting inequality constraints
+into equality constraints, which makes it more straightforward to apply the ADMM algorithm.
 
-The new problem is given by
-\begin{equation}
-\label{eqn:network-opt-std}
-\begin{aligned}
-\textrm{minimize } \quad & f(x) + g(z) + h(s)\\
-\textrm{subject to } \quad &c_e - \sum_{p\in\pi(e)}z_{pe} - s_{e} = 0, \forall e\\
-& d_p - x_p - s_p = 0, \forall p\\
-&x_p - z_{pe} = 0, \forall e, \forall p \in \pi(e)\\
-&x,s,z \succeq 0,
-\end{aligned}
-\end{equation}
-where $f(x) = -\sum_p x_p$,
-$g(z) = \sum_{pe} \bar\delta(z_{pe} \ge 0)$,
-$h(s) = \sum_{e} \bar\delta(s_{e} \ge 0)+ \sum_{p} \bar\delta(s_{p} \ge 0) $.
-We use the delta notation to indicate a function
-$$
-\bar\delta(b) = \begin{cases}
-    \infty & \textrm{if condition } b \textrm{ does not hold},\\
-    0 & \textrm{o.w.}
-\end{cases}
-$$
-This problem is decomposable along each path (for $x$) or edge (for $z$) as follows:
+We add one dummy variable $z_{stek}$ for each combination of path and edge.\footnote{
+There are $K_r$ paths for each request $r$, resulting in
+$|E|\sum_r\sum_{K_r}$ dummy variables.}
+for the traffic contributed to each edge from each path $p_{stk}$
+Adding dummy variables results in the following problem:
 \begin{equation}
 \label{eqn:network-opt-sep}
+\begin{aligned}
+\textrm{maximize } \quad & \sum_r \sum_{p\in r} x_p\\
+\textrm{subject to } \quad
+&\sum_{p \in r}x_p \le d_r, \forall r\\
+&\sum_{p\in\pi(e)} x_p \le c_e, \forall e\\
+& x_p \geq 0, \forall p.
+\end{aligned}
 \begin{aligned}
 \textrm{minimize } \quad & -\sum_p x_p
     + \sum_e\sum_{p \in \pi(e)} \bar\delta(z_{pe})
@@ -119,6 +111,14 @@ This problem is decomposable along each path (for $x$) or edge (for $z$) as foll
 &x,s,z \succeq 0.
 \end{aligned}
 \end{equation}
+We use the delta notation to indicate a function
+$$
+\bar\delta(b) = \begin{cases}
+    \infty & \textrm{if condition } b \textrm{ does not hold},\\
+    0 & \textrm{o.w.}
+\end{cases}
+$$
+
 
 The augmented Lagrangian for this problem is
 \begin{equation}
