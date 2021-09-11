@@ -87,38 +87,42 @@ In order to decouple this constraint, we will transform the problem by adding du
 Afterwards, we will introduce slack variables to turn each of the resulting inequality constraints
 into equality constraints, which makes it more straightforward to apply the ADMM algorithm.
 
-We add one dummy variable $z_{stek}$ for each combination of path and edge.\footnote{
+We add one dummy variable $z_{pe}$ for each combination of path and edge.\footnote{
 There are $K_r$ paths for each request $r$, resulting in
 $|E|\sum_r\sum_{K_r}$ dummy variables.}
-for the traffic contributed to each edge from each path $p_{stk}$
-Adding dummy variables results in the following problem:
+We then replace the $x_p$ variables constraint [2] with dummy variables $z_{pe}$,
+resulting in constraint [3].
+We also for $x_p = z_{pe}$ as constraint [4].
+This results in the following problem:
 \begin{equation}
 \label{eqn:network-opt-sep}
 \begin{aligned}
 \textrm{maximize } \quad & \sum_r \sum_{p\in r} x_p\\
 \textrm{subject to } \quad
-&\sum_{p \in r}x_p \le d_r, \forall r\\
-&\sum_{p\in\pi(e)} x_p \le c_e, \forall e\\
-& x_p \geq 0, \forall p.
-\end{aligned}
-\begin{aligned}
-\textrm{minimize } \quad & -\sum_p x_p
-    + \sum_e\sum_{p \in \pi(e)} \bar\delta(z_{pe})
-    + \sum_e \bar\delta(s_{e}) + \sum_p \bar\delta(s_p)\\
-\textrm{subject to } \quad &c_e - \sum_{p\in\pi(e)}z_{pe} - s_{e} = 0, \forall e\\
-& d_p - x_p - s_p = 0, \forall p\\
-&x_p - z_{pe} = 0, \forall e, \forall p \in \pi(e)\\
-&x,s,z \succeq 0.
+&\sum_{p \in r}x_p \le d_r, \forall r & [1]\\
+&\sum_{p\in\pi(e)} z_{pe} \le c_e, \forall e & [3]\\
+&z_{pe} = x_p, \forall e,p & [4]\\
+& x_p \geq 0, \forall p \\
+& z_{pe} \geq 0, \forall e,p.
 \end{aligned}
 \end{equation}
-We use the delta notation to indicate a function
-$$
-\bar\delta(b) = \begin{cases}
-    \infty & \textrm{if condition } b \textrm{ does not hold},\\
-    0 & \textrm{o.w.}
-\end{cases}
-$$
 
+Finally, we add slack variables $s_{1r},s_{3e}$
+to turn the inequality constraints into equality constraints.
+\begin{equation}
+\label{eqn:network-opt-sep-eq}
+\begin{aligned}
+\textrm{maximize } \quad & \sum_r \sum_{p\in r} x_p\\
+\textrm{subject to } \quad
+&d_r - \sum_{p \in r}x_p - s_{1r} = 0, \forall r & [1]\\
+&c_e - \sum_{p\in\pi(e)} z_{pe} - s_{2e}= 0, \forall e & [3]\\
+&x_p - z_{pe} = 0, \forall e,p & [4]\\
+& x_p \geq 0, \forall p \\
+& z_{pe} \geq 0, \forall e,p\\
+& s_{1r} \geq 0 \\
+& s_{2e} \geq 0.
+\end{aligned}
+\end{equation}
 
 The augmented Lagrangian for this problem is
 \begin{equation}
