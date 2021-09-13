@@ -160,6 +160,7 @@ Given the augmented Lagrangian, the ADMM updates are as follows:
         \lambda^{k+1} := \lambda^k + \rho(F(x^{k+1},z^{k+1},s^{k+1})).
     \end{aligned}
 \end{equation}
+\subsection{Solving for $x$}
 We can compute $\argmin_{x} \mcL_\rho(x,z^k,s^k,\lambda^k)$ by restricting our
 attention to terms of $\mcL_\rho$ involving each $x_p$ (for each path $p\in P$)
 and setting the derivative equal to 0:
@@ -169,12 +170,21 @@ and setting the derivative equal to 0:
     + \sum_{e\in p}\lambda_{4pe}(x_p - z_{pe})\\
     & \qquad + (\rho/2)((d_r - \sum_{p\in r}x_p - s_{1r})^2 + \sum_{e \in p}(x_p - z_{pe})^2))\\
 &= -1 -\lambda_{1r} + \sum_{e \in p}\lambda_{4pe} + \rho(-d_r + \sum_{p\in r}x_p + s_{1r})
-    +\rho\sum_{e \in p} (x_p - z_{pe})\\
-x_p &= \max(0,\frac{1 + \lambda_{1r} - \sum_{e \in p}\lambda_{4pe}
-    + \rho(d_r -\sum_{p'\in e\setminus p} x_{p'}- s_{1r} + \sum_{e\in p} z_{pe})}
-{(1+|p|)\rho}).
+    +\rho\sum_{e \in p} (x_p - z_{pe}).
+\end{align*}
+This gives us a system of equations for each request: $0 = A_rx_r + b_r$,
+where $x_r = (x_p)_{p\in r}$.
+Let $P_r$ be the number of paths in request $r$.
+We can then solve for $x_r = -A_r^{-1}b_r$,
+where
+\begin{align*}
+A_r &= \mathbf{1}_{P_r\times P_r} + I_{P_r\times P_r}\\
+[b_r]_p &=
+    -1 -\lambda_{1r} + \sum_{e \in p}\lambda_{4pe} + \rho(-d_r + s_{1r})
+    - \rho\sum_{e \in p} z_{pe}.
 \end{align*}
 
+\subsection{Solving for $z$}
 We perform a similar computation for $\argmin_{z} \mcL_\rho(x^{k+1},z,s^k,\lambda^k)$:
 \begin{align*}
 0
@@ -184,15 +194,17 @@ We perform a similar computation for $\argmin_{z} \mcL_\rho(x^{k+1},z,s^k,\lambd
 &= -\lambda_{3e} - \lambda_{4pe}
     + \rho(-c_e + \sum_{p'\in\pi(e)} z_{p'e} + s_e  + z_{pe} - x_p).
 \end{align*}
-This gives us a system of equations for each edge $0 = A_ez_e + b_e$
+This gives us a system of equations for each edge: $0 = A_ez_e + b_e$
 allowing us to solve for $z_e = -A_e^{-1}b_e$.
-Let $P_e= |\pi(e)|$. We then have
+Let $P_e= |\pi(e)|$ be the number of paths that pass through edge $e$.
+We then have
 \begin{align*}
 A_e &= \mathbf{1}_{P_e\times P_e} + I_{P_e\times P_e}\\
 [b_e]_p &= -\lambda_{3e} - \lambda_{4pe}
     + \rho(-c_e + s_e - x_p).
 \end{align*}
 
+\subsection{Solving for $s$}
 Then, for $\argmin_{s_1} \mcL_\rho(x^{k+1},z^{k+1},s,y^k)$:
 \begin{align*}
 0
