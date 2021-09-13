@@ -86,7 +86,7 @@ This yields the following optimization problem:
 
 While this form is compact, we would like the problem to
 separate over paths. This is not possible in Eqn.~\ref{eqn:network-opt}
-because constraint [2] couples the traffic in paths.
+because constraint [2] couples the traffic in paths across requests.
 In order to decouple this constraint, we will transform the problem by adding dummy variables.
 Afterwards, we will introduce slack variables to turn each of the resulting inequality constraints
 into equality constraints, which makes it more straightforward to apply the ADMM algorithm.
