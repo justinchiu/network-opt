@@ -1,3 +1,7 @@
+from pathlib import Path
+
+from itertools import product
+
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,7 +14,115 @@ class Problem(NamedTuple):
     adjacency_matrix: np.ndarray
     graph: nx.Graph
     paths: List[List[int]]
+    r2p: np.ndarray
+    r2p_tup: np.ndarray
+    e2p: np.ndarray
     constraints: np.ndarray
+
+
+basedir = Path("teavar/code/data/B4")
+demand_file = basedir / "demand.txt"
+nodes_file = basedir / "nodes.txt"
+topology_file = basedir / "topology.txt"
+path_file = basedir / "paths/FFC"
+
+def process_demands(demand_file):
+    with demand_file.open() as f:
+        demands = [[float(d) for d in line.split()] for line in f]
+    demands = np.array(demands).reshape((-1, 12, 12))
+    return demands
+
+def process_topology(topology_file):
+    with topology_file.open() as f:
+        f.readline()
+        edges = []
+        constraints = []
+        for line in f:
+            src, tgt, cap, p_failure = line.split()
+            src = int(src) - 1
+            tgt = int(tgt) - 1
+            cap = float(cap)
+            p_failure = float(p_failure)
+            edges.append((src, tgt))
+            constraints.append(cap)
+        edges = np.array(edges)
+        constraints = np.array(constraints)
+
+        V = edges.max() + 1
+        adjacency = np.zeros((V,V))
+        adjacency[edges[:,0], edges[:,1]] = constraints
+
+        return edges, constraints, adjacency
+
+def process_paths(path_file, demands):
+    with path_file.open() as f:
+        demand = demands[0]
+        _, V = demand.shape
+
+        r2p = np.zeros((V, V), dtype=np.int)
+        P = 0
+        for line in f:
+            tokens = line.split()
+            if not tokens:
+                # empty line between path lists
+                pass
+            elif tokens[-1] == ":":
+                # start of edge
+                r_src = int(tokens[0][1:]) - 1
+                r_tgt = int(tokens[2][1:]) - 1
+            elif tokens[-2] == "@":
+                # path internal
+                assert(len(tokens) >= 5)
+                r2p[r_src, r_tgt] += 1
+            else:
+                raise ValueError
+
+        P = r2p.sum()
+        # r2p_tuple[s,t] = [start, end)
+        r2p_tuple = np.zeros((V*V, 2), dtype=int)
+        r2p_tuple[1:,0] = r2p.cumsum()[:-1]
+        r2p_tuple[1:-1,1] = r2p_tuple[2:,0]
+        r2p_tuple[-1,1] = P
+
+        # reset file
+        f.seek(0)
+
+        # binary tensor: whether a path passes through an edge
+        e2p = np.zeros((V, V, P))
+        p = 0
+        for line in f:
+            tokens = line.split()
+            if not tokens:
+                # empty line between path lists
+                pass
+            elif tokens[-1] == ":":
+                # start of edge
+                r_src = int(tokens[0][1:]) - 1
+                r_tgt = int(tokens[2][1:]) - 1
+            elif tokens[-2] == "@":
+                # path internal
+                assert(len(tokens) >= 5)
+
+                for edge in tokens[1:-3]:
+                    # middle edges
+                    src, tgt, _  = edge.split(",")
+                    e_src = int(src[2:]) - 1
+                    e_tgt = int(tgt[1:-1]) - 1
+
+                    e2p[e_src, e_tgt, p] = 1
+                p += 1
+            else:
+                raise ValueError
+        return r2p, r2p_tuple, e2p
+
+def load_problem():
+    demands = process_demands(demand_file)
+    edges, constraints, adjacency = process_topology(topology_file)
+    r2p, r2p_tup, e2p = process_paths(path_file, demands)
+    graph = nx.Graph(adjacency)
+    return Problem(demands, constraints, adjacency, r2p, r2p_tup, e2p)
+
+problem = load_problem()
 
 def gen_problem(
     num_vertices, num_edges, num_paths,
@@ -65,8 +177,10 @@ plt.savefig('example_graph.png')
 
 K = len(problem.paths)
 V = problem.constraints.shape[0]
-pi_e = np.zeros((V, V, K))
 
+pi_r = np.zeros(())
+
+pi_e = np.zeros((V, V, K))
 for p, path in enumerate(problem.paths):
     for s,t in zip(path, path[1:]):
         pi_e[s,t,p] = 1
