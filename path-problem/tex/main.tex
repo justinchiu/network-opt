@@ -48,22 +48,24 @@ None
 
 \section{Network Traffic Problem}
 We consider the problem of maximizing network traffic.
-A network is a graph $G = (V,E)$ with vertices $v\in V$ and edges
-$e = (i,j)\in E = V\times V$.
+A network is a graph with $V$ vertices $v$ and $E$ edges
+$e = (i,j)$.
 Each edge $e$ has an associated capacity limit $c_e$.
 We get a set of requests,
 with each request $r$ represented as source and target pairs $(s,t)$,\footnote{
 We assume there is only one unique request for each source and target pair.
 }
-plus a traffic demand $d_r$,
-and the set of all paths $R$.
+plus a traffic demand $d_r$.
+The there are $R$ requests.
 We would like to fulfill the demand for each request as much as possible,
-by splitting traffic across the $K_r$ valid paths
-$p_{rk} = ((s,a), (a,b), \ldots, (z,t))$ from $s$ to $t$:
-$\sum_{p\in r} x_p \le d_r$, where we should not exceed the request's demand
-(constraint [1]).
+by splitting traffic across $P_r$ valid paths.
+Each path associated with a request is a squence of edges given by
+$p = ((s,a), (a,b), \ldots, (z,t))$ from $s$ to $t$.
+Our first constraint, constraint [1],
+ensures that each request has the constraint that the total traffic across associated paths
+$\sum_{p\in r} x_p \le d_r$ does not exceed the request's demand.
 We will say that $p\in r$ if $p$ is a valid path from $s\to t$.
-We denote the set of all paths $P$.
+We denote the total number of paths $P$.
 Additionally, we must ensure that edge traffic constraints hold.
 Multiple paths, as well as multiple requests, may result in overlapping traffic
 across particular edges, resulting in constraint [2]:
@@ -90,8 +92,8 @@ Afterwards, we will introduce slack variables to turn each of the resulting ineq
 into equality constraints, which makes it more straightforward to apply the ADMM algorithm.
 
 We add one dummy variable $z_{pe}$ for each combination of path and edge.\footnote{
-There are $K_r$ paths for each request $r$, resulting in
-$|E|\sum_r\sum_{K_r}$ dummy variables.}
+There are $P_r$ paths for each request $r$, resulting in
+$E\sum_r\sum_{P_r}$ dummy variables.}
 We then replace the $x_p$ variables constraint [2] with dummy variables $z_{pe}$,
 resulting in constraint [3].
 We also for $x_p = z_{pe}$ as constraint [4].
