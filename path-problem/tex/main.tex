@@ -55,13 +55,15 @@ We get a set of requests,
 with each request $r$ represented as source and target pairs $(s,t)$,\footnote{
 We assume there is only one unique request for each source and target pair.
 }
-plus a traffic demand $d_r$.
+plus a traffic demand $d_r$,
+and the set of all paths $R$.
 We would like to fulfill the demand for each request as much as possible,
 by splitting traffic across the $K_r$ valid paths
 $p_{rk} = ((s,a), (a,b), \ldots, (z,t))$ from $s$ to $t$:
 $\sum_{p\in r} x_p \le d_r$, where we should not exceed the request's demand
 (constraint [1]).
 We will say that $p\in r$ if $p$ is a valid path from $s\to t$.
+We denote the set of all paths $P$.
 Additionally, we must ensure that edge traffic constraints hold.
 Multiple paths, as well as multiple requests, may result in overlapping traffic
 across particular edges, resulting in constraint [2]:
@@ -159,26 +161,27 @@ Given the augmented Lagrangian, the ADMM updates are as follows:
     \end{aligned}
 \end{equation}
 We can compute $\argmin_{x} \mcL_\rho(x,z^k,s^k,\lambda^k)$ by restricting our
-attention to terms of $\mcL_\rho$ involving $x$ and setting the derivative equal to 0:
+attention to terms of $\mcL_\rho$ involving each $x_p$ (for each path $p\in P$)
+and setting the derivative equal to 0:
 \begin{align*}
 0
-&= \nabla_{x_p}(-x_p + \lambda_{1r}(d_r - x_p - s_{1r})
-+ \sum_{e\in p}\lambda_{4pe}(x_p - z_{pe})
-+ (\rho/2)((d_r - x_p - s_{1r})^2 + \sum_{e \in p}(x_p - z_{pe})^2))\\
-&= -1 -\lambda_{1r} + \sum_{e \in p}\lambda_{4pe} + \rho(-d_r + x_p + s_{1r})
+&= \nabla_{x_p}(-x_p + \lambda_{1r}(d_r - \sum_{p\in r}x_p - s_{1r})
+    + \sum_{e\in p}\lambda_{4pe}(x_p - z_{pe})\\
+    & \qquad + (\rho/2)((d_r - \sum_{p\in r}x_p - s_{1r})^2 + \sum_{e \in p}(x_p - z_{pe})^2))\\
+&= -1 -\lambda_{1r} + \sum_{e \in p}\lambda_{4pe} + \rho(-d_r + \sum_{p\in r}x_p + s_{1r})
     +\rho\sum_{e \in p} (x_p - z_{pe})\\
-x_p &= \max(0,\frac{1 + \lambda_{2,p} - \sum_{e \in p}\lambda_{3,pe}
-    + \rho(d_p - s_p + \sum_{e\in p} z_{pe})}
+x_p &= \max(0,\frac{1 + \lambda_{1r} - \sum_{e \in p}\lambda_{4pe}
+    + \rho(d_r -\sum_{p'\in e\setminus p} x_{p'}- s_{1r} + \sum_{e\in p} z_{pe})}
 {(1+|p|)\rho}).
 \end{align*}
 
 We perform a similar computation for $\argmin_{z} \mcL_\rho(x^{k+1},z,s^k,\lambda^k)$:
 \begin{align*}
 0
-&= \nabla_{z_{pe}}\bar\delta(z_{pe}) + \lambda_{1,e}(c_e - \sum_{p'\in\pi(e)} z_{p'e} - s_{e})
-    + \lambda_{3,pe}(x_p - z_{pe})\\
+&= \nabla_{z_{pe}}\lambda_{3e}(c_e - \sum_{p'\in\pi(e)} z_{p'e} - s_{3e})
+    + \lambda_{4pe}(x_p - z_{pe})\\
 & \qquad + (\rho/2)((c_e - \sum_{p'\in\pi(e)} z_{p'e} - s_e)^2 + (x_p - z_{pe})^2)\\
-&= -\lambda_{1,e} - \lambda_{3,pe}
+&= -\lambda_{3e} - \lambda_{4pe}
     + \rho(-c_e + \sum_{p'\in\pi(e)} z_{p'e} + s_e  + z_{pe} - x_p).
 \end{align*}
 This gives us a system of equations for each edge $0 = A_ez_e + b_e$
@@ -186,25 +189,25 @@ allowing us to solve for $z_e = -A_e^{-1}b_e$.
 Let $P_e= |\pi(e)|$. We then have
 \begin{align*}
 A_e &= \mathbf{1}_{P_e\times P_e} + I_{P_e\times P_e}\\
-[b_e]_p &= -\lambda_{1,e} - \lambda_{3,pe}
+[b_e]_p &= -\lambda_{3e} - \lambda_{4pe}
     + \rho(-c_e + s_e - x_p).
 \end{align*}
 
-Then, for $\argmin_{s} \mcL_\rho(x^{k+1},z^{k+1},s,y^k)$:
+Then, for $\argmin_{s_1} \mcL_\rho(x^{k+1},z^{k+1},s,y^k)$:
 \begin{align*}
 0
-&= \nabla_{s_{e}}\bar\delta(s_{e}) + \lambda_{1,e}(c_e - \sum_{p\in\pi(e)} z_{pe} - s_{e})
-    + (\rho/2)((c_e - \sum_{p\in\pi(e)} z_{pe} - s_{e})^2)\\
-&= -\lambda_{1,e} + \rho(-c_e + \sum_{p\in\pi(e)} z_{pe} + s_e)\\
-s_{e} &= \max(0,\frac{\lambda_{1,e} + \rho(c_e - \sum_{p\in\pi(e)}z_{pe})}{\rho}),
+&= \nabla_{s_{1r}}\lambda_{1r}(d_r - \sum_{p'\in r}x_{p'} - s_{1p})
+    + (\rho/2)((d_r - \sum_{p'\in r}x_{p'} - s_{1p})^2)\\
+&= -\lambda_{1r} + \rho(-d_p + \sum_{p'\in r}x_{p'} + s_p)\\
+s_{p} &= \max(0,\frac{\lambda_{1r} + \rho(d_p - \sum_{p'\in r}x_{p'})}{\rho}),
 \end{align*}
-and
+and for $\argmin_{s_3} \mcL_\rho(x^{k+1},z^{k+1},s,y^k)$:
 \begin{align*}
 0
-&= \nabla_{s_{p}}\bar\delta(s_{p}) + \lambda_{2,p}(d_p - x_p - s_p)
-    + (\rho/2)((d_p - x_p - s_{p})^2)\\
-&= -\lambda_{2,p} + \rho(-d_p + x_p + s_p)\\
-s_{p} &= \max(0,\frac{\lambda_{2,p} + \rho(d_p - x_p)}{\rho}).
+&= \nabla_{s_{3e}} \lambda_{3e}(c_e - \sum_{p\in\pi(e)} z_{pe} - s_{3e})
+    + (\rho/2)((c_e - \sum_{p\in\pi(e)} z_{pe} - s_{3e})^2)\\
+&= -\lambda_{3e} + \rho(-c_e + \sum_{p\in\pi(e)} z_{pe} + s_{3e})\\
+s_{3e} &= \max(0,\frac{\lambda_{3e} + \rho(c_e - \sum_{p\in\pi(e)}z_{pe})}{\rho}).
 \end{align*}
 
 \end{document}
