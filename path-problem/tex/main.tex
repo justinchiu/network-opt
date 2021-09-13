@@ -91,6 +91,7 @@ In order to decouple this constraint, we will transform the problem by adding du
 Afterwards, we will introduce slack variables to turn each of the resulting inequality constraints
 into equality constraints, which makes it more straightforward to apply the ADMM algorithm.
 
+\subsection{Dummy variables for edge traffic}
 We add one dummy variable $z_{pe}$ for each combination of path and edge.\footnote{
 There are $P_r$ paths for each request $r$, resulting in
 $E\sum_r\sum_{P_r}$ dummy variables.}
@@ -111,6 +112,7 @@ This results in the following problem:
 \end{aligned}
 \end{equation}
 
+\subsection{Slack variables for equality constraints}
 Finally, we add slack variables $s_{1r},s_{3e}$
 to turn the inequality constraints into equality constraints.
 \begin{equation}
@@ -153,6 +155,7 @@ The augmented Lagrangian for this problem is
 where we have added a quadratic term based on $F$ and the hyperparameter $rho\in\R_+$.
 This quadratic term is key to ADMM.
 
+\section{ADMM Updates}
 Given the augmented Lagrangian, the ADMM updates are as follows:
 \begin{equation}
     \begin{aligned}

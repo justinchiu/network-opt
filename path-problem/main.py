@@ -11,13 +11,13 @@ import cvxpy as cp
 from typing import NamedTuple, List
 
 class Problem(NamedTuple):
-    adjacency_matrix: np.ndarray
     graph: nx.Graph
     paths: List[List[int]]
+    demand: np.ndarray
+    constraints: np.ndarray
     r2p: np.ndarray
     r2p_tup: np.ndarray
     e2p: np.ndarray
-    constraints: np.ndarray
 
 
 basedir = Path("teavar/code/data/B4")
@@ -49,14 +49,13 @@ def process_topology(topology_file):
         constraints = np.array(constraints)
 
         V = edges.max() + 1
-        adjacency = np.zeros((V,V))
-        adjacency[edges[:,0], edges[:,1]] = constraints
+        adjacency_constraints = np.zeros((V,V))
+        adjacency_constraints[edges[:,0], edges[:,1]] = constraints
 
-        return edges, constraints, adjacency
+        return adjacency_constraints
 
-def process_paths(path_file, demands):
+def process_paths(path_file, demand):
     with path_file.open() as f:
-        demand = demands[0]
         _, V = demand.shape
 
         r2p = np.zeros((V, V), dtype=np.int)
@@ -78,11 +77,15 @@ def process_paths(path_file, demands):
                 raise ValueError
 
         P = r2p.sum()
+        # sparse version
         # r2p_tuple[s,t] = [start, end)
         r2p_tuple = np.zeros((V*V, 2), dtype=int)
         r2p_tuple[1:,0] = r2p.cumsum()[:-1]
         r2p_tuple[1:-1,1] = r2p_tuple[2:,0]
         r2p_tuple[-1,1] = P
+
+        # dense version, assuming each request has the same number of paths
+        Pk = r2p.max()
 
         # reset file
         f.seek(0)
@@ -117,52 +120,21 @@ def process_paths(path_file, demands):
 
 def load_problem():
     demands = process_demands(demand_file)
-    edges, constraints, adjacency = process_topology(topology_file)
-    r2p, r2p_tup, e2p = process_paths(path_file, demands)
+    constraints = process_topology(topology_file)
+    r2p, e2p = process_paths(path_file, demands[0])
     graph = nx.Graph(adjacency)
-    return Problem(demands, constraints, adjacency, r2p, r2p_tup, e2p)
+
+    return Problem(
+        graph,
+        paths,
+        demands[0],
+        constraints,
+        r2p,
+        e2p,
+    )
+
 
 problem = load_problem()
-
-def gen_problem(
-    num_vertices, num_edges, num_paths,
-    min_path_length=5, max_path_length=5,
-    min_constraint=3, max_constraint=3,
-):
-    edges = np.random.permutation(int(num_vertices * (num_vertices - 1) / 2))[:num_edges]
-
-    adjacency_matrix = np.zeros((num_vertices, num_vertices))
-    ix, iy = np.triu_indices(num_vertices)
-    adjacency_matrix[ix[edges], iy[edges]] = 1
-    adjacency_matrix.T[ix[edges], iy[edges]] = 1
-    np.fill_diagonal(adjacency_matrix, 0)
-
-    # reachability hack
-    exists_valid_path = np.linalg.matrix_power(adjacency_matrix, num_vertices) > 0
-    possible_source_targets = np.array(exists_valid_path.nonzero()).T
-    source_targets_idx = np.random.choice(len(possible_source_targets), num_paths)
-    source_targets = possible_source_targets[source_targets_idx]
-
-    graph = nx.Graph(adjacency_matrix)
-
-    paths = []
-    for s,t in source_targets:
-        path_generator = nx.all_simple_paths(graph, s, t)
-        valid_paths = [
-            x for x in path_generator
-            if len(x) >= min_path_length and len(x) <= max_path_length
-        ]
-        assert valid_paths
-        paths.append(valid_paths[np.random.choice(len(valid_paths))])
-
-    constraints = np.random.uniform(min_constraint, max_constraint, adjacency_matrix.shape)
-    constraints = constraints * adjacency_matrix
-    # by defn, have constraint of 0 if there is no edge
-
-    return Problem(adjacency_matrix, graph, paths, constraints)
-
-
-problem = gen_problem(7, 13, 3, 1, 5, 3, 3)
 
 G = problem.graph
 pos = nx.spring_layout(G, seed=225)  # Seed for reproducible layout
