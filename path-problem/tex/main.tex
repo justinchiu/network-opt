@@ -160,6 +160,8 @@ Given the augmented Lagrangian, the ADMM updates are as follows:
         \lambda^{k+1} := \lambda^k + \rho(F(x^{k+1},z^{k+1},s^{k+1})).
     \end{aligned}
 \end{equation}
+We solve for each update below.
+
 \subsection{Solving for $x$}
 We can compute $\argmin_{x} \mcL_\rho(x,z^k,s^k,\lambda^k)$ by restricting our
 attention to terms of $\mcL_\rho$ involving each $x_p$ (for each path $p\in P$)
