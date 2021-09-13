@@ -215,7 +215,7 @@ Then, for $\argmin_{s_1} \mcL_\rho(x^{k+1},z^{k+1},s,y^k)$:
 &= \nabla_{s_{1r}}\lambda_{1r}(d_r - \sum_{p'\in r}x_{p'} - s_{1p})
     + (\rho/2)((d_r - \sum_{p'\in r}x_{p'} - s_{1p})^2)\\
 &= -\lambda_{1r} + \rho(-d_p + \sum_{p'\in r}x_{p'} + s_p)\\
-s_{p} &= \max(0,\frac{\lambda_{1r} + \rho(d_p - \sum_{p'\in r}x_{p'})}{\rho}),
+s_{p} &= \frac{\lambda_{1r} + \rho(d_p - \sum_{p'\in r}x_{p'})}{\rho},
 \end{align*}
 and for $\argmin_{s_3} \mcL_\rho(x^{k+1},z^{k+1},s,y^k)$:
 \begin{align*}
@@ -223,7 +223,7 @@ and for $\argmin_{s_3} \mcL_\rho(x^{k+1},z^{k+1},s,y^k)$:
 &= \nabla_{s_{3e}} \lambda_{3e}(c_e - \sum_{p\in\pi(e)} z_{pe} - s_{3e})
     + (\rho/2)((c_e - \sum_{p\in\pi(e)} z_{pe} - s_{3e})^2)\\
 &= -\lambda_{3e} + \rho(-c_e + \sum_{p\in\pi(e)} z_{pe} + s_{3e})\\
-s_{3e} &= \max(0,\frac{\lambda_{3e} + \rho(c_e - \sum_{p\in\pi(e)}z_{pe})}{\rho}).
+s_{3e} &= \frac{\lambda_{3e} + \rho(c_e - \sum_{p\in\pi(e)}z_{pe})}{\rho}.
 \end{align*}
 
 \end{document}
