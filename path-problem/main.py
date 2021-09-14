@@ -217,9 +217,11 @@ def naive_admm_solver(
 
     e2p_flat = e2p.astype(int)
     num_paths_for_edge = e2p_flat.sum(-1)
+    num_edges_for_path = e2p_flat.sum(0)
 
     e2p_flat_bool = e2p.reshape(-1).astype(bool)
 
+    # A_r is wrong
     A_r_inv = np.linalg.inv(np.ones((Pr, Pr)) + np.eye(Pr))
 
     A_invs = [
@@ -239,6 +241,7 @@ def naive_admm_solver(
             (-1 - lambda1[:,None] + (e2p * lambda4).sum(0).reshape(V*V, -1))
             + rho * (-d + s1 + (e2p * z).sum(1))[:,None]
         )
+        import pdb; pdb.set_trace()
         x = -np.einsum("ab,nb->na", A_r_inv / rho, b).reshape(-1)
         x = np.maximum(0, x)
 

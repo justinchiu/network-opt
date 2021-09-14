@@ -185,7 +185,7 @@ Let $P_r$ be the number of paths in request $r$.
 We can then solve for $x_r = -A_r^{-1}b_r$,
 where
 \begin{align*}
-A_r &= \mathbf{1}_{P_r\times P_r} + I_{P_r\times P_r}\\
+A_r &= \mathbf{1}_{P_r\times P_r} + \diag((|p|)_{p\in r})\\
 [b_r]_p &=
     -1 -\lambda_{1r} + \sum_{e \in p}\lambda_{4pe} + \rho(-d_r + s_{1r})
     - \rho\sum_{e \in p} z_{pe}.
