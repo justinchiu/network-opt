@@ -20,7 +20,6 @@ class Problem(NamedTuple):
     P: int
     Pr: int
     e2p: np.ndarray # binary map from edge to which paths appear
-    p2e: np.ndarray # binary map from path to included edges
 
 
 basedir = Path("teavar/code/data/B4")
@@ -100,7 +99,6 @@ def process_paths(path_file, demand):
 
         # binary tensor: whether a path passes through an edge
         e2p = np.zeros((V, V, P))
-        p2e = np.zeros((P, V, V))
         p = 0
         for line in f:
             tokens = line.split()
@@ -130,18 +128,16 @@ def process_paths(path_file, demand):
 
                     e2p[e_src, e_tgt, p] = 1
                     edges.append((e_src, e_tgt))
-
-                    p2e[p, e_src, e_tgt] = 1
                 requests[-1].append(edges)
                 p += 1
             else:
                 raise ValueError
-        return requests, r2p, r2p_tuple, P, Pr, e2p, p2e
+        return requests, r2p, r2p_tuple, P, Pr, e2p 
 
 def load_problem():
     demands = process_demands(demand_file)
     constraints = process_topology(topology_file)
-    paths, r2p, r2p_tup, P, Pr, e2p, p2e = process_paths(path_file, demands)
+    paths, r2p, r2p_tup, P, Pr, e2p = process_paths(path_file, demands)
     graph = nx.Graph(constraints)
 
     return Problem(
@@ -152,7 +148,6 @@ def load_problem():
         P,
         Pr,
         e2p,
-        p2e,
     )
 
 
@@ -274,10 +269,11 @@ def naive_admm_solver(
         lambda1 += rho * r1
         lambda3 += rho * r3
         lambda4 += rho * r4
+        import pdb; pdb.set_trace()
 
-        lambda4 = lambda4.reshape(-1)
-        lambda4[e2p_flat_bool] += rho * r4.reshape(-1)[e2p_flat_bool]
-        lambda4 = lambda4.reshape(e2p_flat.shape)
+        #lambda4 = lambda4.reshape(-1)
+        #lambda4[e2p_flat_bool] += rho * r4.reshape(-1)[e2p_flat_bool]
+        #lambda4 = lambda4.reshape(e2p_flat.shape)
 
     return x, z, s1, s3, lambda1, lambda3, lambda4, r1, r3, r4
 
