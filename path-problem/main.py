@@ -132,6 +132,9 @@ def process_paths(path_file, demand):
                 p += 1
             else:
                 raise ValueError
+        # add self-cycles for self-traffic
+        for v in range(V):
+            e2p.reshape((V,V,V,V,-1))[v,v,v,v] = 1
         return requests, r2p, r2p_tuple, P, Pr, e2p 
 
 def load_problem():
@@ -214,7 +217,7 @@ def naive_admm_solver(
     num_paths_for_edge = e2p_flat.sum(-1)
     num_edges_for_path = e2p_flat.sum(0)
     # clamp to 1?
-    num_edges_for_path = np.maximum(1, num_edges_for_path)
+    #num_edges_for_path = np.maximum(1, num_edges_for_path)
 
     e2p_flat_bool = e2p.reshape(-1).astype(bool)
 
@@ -222,6 +225,7 @@ def naive_admm_solver(
     ones = np.ones((Pr, Pr))
     eye = np.eye(Pr)[None] * num_edges_for_path.reshape((V*V, Pr))[:, None]
     A_r_inv = np.linalg.inv(ones[None] + eye)
+    #import pdb; pdb.set_trace()
 
     A_invs = [
         np.linalg.inv(np.ones((k, k)) + np.eye(k))
@@ -238,7 +242,7 @@ def naive_admm_solver(
         # x update
         b = (
             (-1 - lambda1[:,None] + (e2p * lambda4).sum(0).reshape(V*V, -1))
-            + rho * (-d + s1 + (e2p * z).sum(1))[:,None]
+            + rho * ((-d + s1)[:,None] + (e2p * z).sum(0).reshape(V*V, -1))
         )
         x = -np.einsum("nab,nb->na", A_r_inv / rho, b).reshape(-1)
         x = np.maximum(0, x)
@@ -269,7 +273,6 @@ def naive_admm_solver(
         lambda1 += rho * r1
         lambda3 += rho * r3
         lambda4 += rho * r4
-        import pdb; pdb.set_trace()
 
         #lambda4 = lambda4.reshape(-1)
         #lambda4[e2p_flat_bool] += rho * r4.reshape(-1)[e2p_flat_bool]
@@ -288,7 +291,7 @@ x, z, s1, s3, l1, l3, l4, r1, r3, r4 = naive_admm_solver(
     lambda1 = np.zeros((V*V,)),
     lambda3 = np.zeros((V*V,)),
     lambda4 = np.zeros((V*V, problem.P)),
-    num_iters = 10000,
+    num_iters = 100,
 )
 #print(s1)
 #print(s3)
