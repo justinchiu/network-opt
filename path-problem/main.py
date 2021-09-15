@@ -132,7 +132,7 @@ def process_paths(path_file, demand):
                 p += 1
             else:
                 raise ValueError
-        # add self-cycles for self-traffic
+        # for self-loops add a self-path for self-routes
         for v in range(V):
             e2p.reshape((V,V,V,V,-1))[v,v,v,v] = 1
         return requests, r2p, r2p_tuple, P, Pr, e2p 
@@ -229,12 +229,7 @@ def naive_admm_solver(
 
     A_invs = [
         np.linalg.inv(np.ones((k, k)) + np.eye(k))
-        if k > 0 else None
-        for k in num_paths_for_edge.tolist()
-    ]
-    As = [
-        np.ones((k, k)) + np.eye(k)
-        if k > 0 else None
+        #if k > 0 else None
         for k in num_paths_for_edge.tolist()
     ]
 
@@ -242,7 +237,7 @@ def naive_admm_solver(
         # x update
         b = (
             (-1 - lambda1[:,None] + (e2p * lambda4).sum(0).reshape(V*V, -1))
-            + rho * ((-d + s1)[:,None] + (e2p * z).sum(0).reshape(V*V, -1))
+            + rho * ((-d + s1)[:,None] - (e2p * z).sum(0).reshape(V*V, -1))
         )
         x = -np.einsum("nab,nb->na", A_r_inv / rho, b).reshape(-1)
         x = np.maximum(0, x)
@@ -268,15 +263,13 @@ def naive_admm_solver(
         r1 = d - x.reshape(V*V, -1).sum(1) - s1
         r3 = c - (e2p * z).sum(-1) - s3
         r4 = x[None] - z
+        #print(np.square(r4).sum())
+        #import pdb; pdb.set_trace()
 
         # lambda update
         lambda1 += rho * r1
         lambda3 += rho * r3
         lambda4 += rho * r4
-
-        #lambda4 = lambda4.reshape(-1)
-        #lambda4[e2p_flat_bool] += rho * r4.reshape(-1)[e2p_flat_bool]
-        #lambda4 = lambda4.reshape(e2p_flat.shape)
 
     return x, z, s1, s3, lambda1, lambda3, lambda4, r1, r3, r4
 
@@ -291,10 +284,11 @@ x, z, s1, s3, l1, l3, l4, r1, r3, r4 = naive_admm_solver(
     lambda1 = np.zeros((V*V,)),
     lambda3 = np.zeros((V*V,)),
     lambda4 = np.zeros((V*V, problem.P)),
-    num_iters = 100,
+    num_iters = 1000,
 )
 #print(s1)
 #print(s3)
 print(-x.sum())
 
+print(np.square(r4).sum())
 import pdb; pdb.set_trace()
