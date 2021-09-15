@@ -247,7 +247,6 @@ def naive_admm_solver(
             if A_invs[e] is not None:
                 A_inv = A_invs[e] / rho
                 path_ix = e2p[e].astype(bool)
-                #b = (-lambda1[e,None] - lambda2[e, path_ix] + lambda5[e, path_ix]
                 b = (-lambda3[e,None] - lambda4[e, path_ix]
                     + rho * (-c[e,None] + s3[e,None] - x[path_ix]))
                 z[e, path_ix] = -A_inv @ b

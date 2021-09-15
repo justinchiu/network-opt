@@ -152,8 +152,9 @@ The augmented Lagrangian for this problem is
     \mcL_\rho(x,z,s,\lambda) =-\sum_r\sum_{p\in r} x_p + \lambda^\top F(x,z,s)
         + (\rho/2)\| F(x,z,s) \|_2^2,
 \end{equation}
-where we have added a quadratic term based on $F$ and the hyperparameter $rho\in\R_+$.
-This quadratic term is key to ADMM.
+where we have added a quadratic term based on $F$ and the hyperparameter $\rho\in\R_+$.
+This quadratic term is key to ADMM, as it must be 0 at the solution, resulting in
+a feasible solution for the original problem.
 
 \section{ADMM Updates}
 Given the augmented Lagrangian, the ADMM updates are as follows:
