@@ -16,17 +16,15 @@ from solver import (
     compute_residuals, update_lambda,
 )
 
-from solver import (
-    update_x_cvxpy, update_z_cvxpy, update_s_cvxpy,
-)
+#from solver import (
+    #update_x_cvxpy, update_z_cvxpy, update_s_cvxpy,
+#)
 
 class Problem(NamedTuple):
     graph: nx.Graph
     paths: List[List[int]]
     demand: np.ndarray # in adjacency matrix form
     constraints: np.ndarray # in adjacency matrix form
-    #r2p: np.ndarray
-    #r2p_tup: np.ndarray
     P: int
     Pr: int
     e2p: np.ndarray # binary map from edge to which paths appear
@@ -169,13 +167,8 @@ problem = load_problem()
 G = problem.graph
 pos = nx.spring_layout(G, seed=225)  # Seed for reproducible layout
 nx.draw(G, pos, with_labels=True)
-#node_labels = nx.get_node_attributes(G,'state')
-#nx.draw_networkx_labels(G, pos, labels = node_labels)
-#edge_labels = nx.get_edge_attributes(G,'state')
-#nx.draw_networkx_edge_labels(G, pos, edge_labels = edge_labels)
 
 plt.savefig('example_graph.png')
-#plt.show()
 
 V = problem.constraints.shape[0]
 
@@ -192,13 +185,13 @@ X = cp.Variable(problem.P, nonneg=True)
 objective = cp.Minimize(-cp.sum(X))
 constraints = [
     dense_r2p @ X <= problem.demand.reshape((V*V,)),
+    # reshaping does not work with cvxpy
+    #cp.sum(cp.reshape(X, (V*V, 6)), axis=1) <= problem.demand.reshape((V*V,)),
     problem.e2p.reshape((V*V, problem.P)) @ X <= problem.constraints.reshape((V*V,)),
 ]
 
 prob = cp.Problem(objective, constraints)
 result = prob.solve(verbose=True)
-#print(X.value)
-#print(constraints[0].dual_value)
 print(prob.value)
 
 sol = X.value
@@ -220,6 +213,7 @@ def naive_admm_solver(
     d = problem.demand.reshape(-1)
     c = problem.constraints.reshape(-1)
 
+    # see solver.py
     variables = Variables(V, Pr)
     constraints = Constraints(d, c)
     cache = Cache(V, Pr, rho, problem.e2p)
@@ -248,8 +242,6 @@ variables, (r1, r3, r4)= naive_admm_solver(
     rho = 1,
     num_iters = 1000,
 )
-#print(s1)
-#print(s3)
 print(-variables.x.sum())
 
 print(np.square(r4).sum())
