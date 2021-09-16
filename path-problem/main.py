@@ -10,6 +10,16 @@ import cvxpy as cp
 
 from typing import NamedTuple, List
 
+from solver import (
+    Variables, Constraints, Cache,
+    update_x, update_z, update_s,
+    compute_residuals, update_lambda,
+)
+
+from solver import (
+    update_x_cvxpy, update_z_cvxpy, update_s_cvxpy,
+)
+
 class Problem(NamedTuple):
     graph: nx.Graph
     paths: List[List[int]]
@@ -202,92 +212,45 @@ print((problem.e2p.reshape((V*V, problem.P)) @ sol - problem.constraints.reshape
 def naive_admm_solver(
     problem,
     rho,
-    x, z, s1, s3,
-    lambda1, lambda3, lambda4,
     num_iters = 100,
 ):
     Pr = problem.Pr
+    V = problem.constraints.shape[0]
 
     d = problem.demand.reshape(-1)
     c = problem.constraints.reshape(-1)
 
-    e2p = problem.e2p.reshape(V*V, -1)
-
-    e2p_flat = e2p.astype(int)
-    num_paths_for_edge = e2p_flat.sum(-1)
-    num_edges_for_path = e2p_flat.sum(0)
-    # clamp to 1?
-    #num_edges_for_path = np.maximum(1, num_edges_for_path)
-
-    e2p_flat_bool = e2p.reshape(-1).astype(bool)
-
-    # A_r is wrong
-    ones = np.ones((Pr, Pr))
-    eye = np.eye(Pr)[None] * num_edges_for_path.reshape((V*V, Pr))[:, None]
-    A_r_inv = np.linalg.inv(ones[None] + eye)
-    #import pdb; pdb.set_trace()
-
-    A_invs = [
-        np.linalg.inv(np.ones((k, k)) + np.eye(k))
-        #if k > 0 else None
-        for k in num_paths_for_edge.tolist()
-    ]
+    variables = Variables(V, Pr)
+    constraints = Constraints(d, c)
+    cache = Cache(V, Pr, rho, problem.e2p)
 
     for iter in range(num_iters):
-        # x update
-        b = (
-            (-1 - lambda1[:,None] + (e2p * lambda4).sum(0).reshape(V*V, -1))
-            + rho * ((-d + s1)[:,None] - (e2p * z).sum(0).reshape(V*V, -1))
-        )
-        x = -np.einsum("nab,nb->na", A_r_inv / rho, b).reshape(-1)
-        x = np.maximum(0, x)
+        x = update_x(variables, constraints, cache)
+        variables.x = x
+        z = update_z(variables, constraints, cache)
+        variables.z = z
+        s1, s3 = update_s(variables, constraints, cache)
+        variables.s1 = s1
+        variables.s3 = s3
 
-        # z update
-        for e in range(c.size):
-            if A_invs[e] is not None:
-                A_inv = A_invs[e] / rho
-                path_ix = e2p[e].astype(bool)
-                b = (-lambda3[e,None] - lambda4[e, path_ix]
-                    + rho * (-c[e,None] + s3[e,None] - x[path_ix]))
-                z[e, path_ix] = -A_inv @ b
-        z = np.maximum(0, z)
-        #import pdb; pdb.set_trace()
-         
-        # s update
-        s1 = (lambda1 + rho * (d - x.reshape(V*V, -1).sum(1))) / rho
-        s3 = (lambda3 + rho * (c - (e2p * z).sum(-1))) / rho
-        s1 = np.maximum(0, s1)
-        s3 = np.maximum(0, s3)
+        residuals = compute_residuals(variables, constraints, cache)
 
-        r1 = d - x.reshape(V*V, -1).sum(1) - s1
-        r3 = c - (e2p * z).sum(-1) - s3
-        r4 = x[None] - z
-        #print(np.square(r4).sum())
-        #import pdb; pdb.set_trace()
+        l1, l3, l4 = update_lambda(variables, residuals, cache)
+        variables.l1 = l1
+        variables.l3 = l3
+        variables.l4 = l4
 
-        # lambda update
-        lambda1 += rho * r1
-        lambda3 += rho * r3
-        lambda4 += rho * r4
-
-    return x, z, s1, s3, lambda1, lambda3, lambda4, r1, r3, r4
+    return variables, residuals
 
 
-x, z, s1, s3, l1, l3, l4, r1, r3, r4 = naive_admm_solver(
+variables, (r1, r3, r4)= naive_admm_solver(
     problem,
     rho = 1,
-    x = np.zeros((problem.P,)),
-    z = np.zeros((V*V, problem.P)),
-    s1 = np.zeros((V*V,)),
-    s3 = np.zeros((V*V,)),
-    lambda1 = np.zeros((V*V,)),
-    lambda3 = np.zeros((V*V,)),
-    lambda4 = np.zeros((V*V, problem.P)),
     num_iters = 1000,
 )
 #print(s1)
 #print(s3)
-print(-x.sum())
+print(-variables.x.sum())
 
 print(np.square(r4).sum())
 import pdb; pdb.set_trace()

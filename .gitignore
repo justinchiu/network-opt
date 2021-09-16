@@ -5,3 +5,5 @@
 *.aux
 *.blg
 *.out
+
+__pycache__
