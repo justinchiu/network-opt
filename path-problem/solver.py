@@ -132,3 +132,24 @@ def update_lambda(variables, residuals, cache):
     r1, r3, r4 = residuals
 
     return (lambda1 + rho * r1, lambda3 + rho * r3, lambda4 + rho * r4)
+
+
+def update_x_cvxpy(variables, constraints, cache):
+    z = variables.z
+    s1 = variables.s1
+    lambda1 = variables.l1
+    lambda4 = variables.l4
+
+    d = constraints.d
+
+    e2p = cache.e2p
+    A_r_inv = cache.A_r_inv
+    V = cache.V
+    rho = cache.rho
+
+    b = (
+        (-1 - lambda1[:,None] + (e2p * lambda4).sum(0).reshape(V*V, -1))
+        + rho * ((-d + s1)[:,None] - (e2p * z).sum(0).reshape(V*V, -1))
+    )
+    x = -np.einsum("nab,nb->na", A_r_inv / rho, b).reshape(-1)
+    return np.maximum(0, x)
