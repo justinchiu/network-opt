@@ -10,12 +10,16 @@ import cvxpy as cp
 
 from typing import NamedTuple, List
 
-from data import Problem, load_problem
+from data import load_problem
 
 from solver import (
     Variables, Constraints, Cache,
     update_x, update_z, update_s,
     compute_residuals, update_lambda,
+)
+
+from solver import (
+    update_x_cvxpy, update_z_cvxpy, #update_s_cvxpy,
 )
 
 
@@ -74,11 +78,15 @@ def naive_admm_solver(
     variables = Variables(V, Pr)
     constraints = Constraints(d, c)
     cache = Cache(V, Pr, rho, problem.e2p)
+    # DEBUG
+    cache.dense_r2p = dense_r2p
 
     for iter in range(num_iters):
-        x = update_x(variables, constraints, cache)
+        #x = update_x(variables, constraints, cache)
+        x = update_x_cvxpy(variables, constraints, cache)
         variables.x = x
-        z = update_z(variables, constraints, cache)
+        #z = update_z(variables, constraints, cache)
+        z = update_z_cvxpy(variables, constraints, cache)
         variables.z = z
         s1, s3 = update_s(variables, constraints, cache)
         variables.s1 = s1
@@ -97,7 +105,7 @@ def naive_admm_solver(
 variables, (r1, r3, r4)= naive_admm_solver(
     problem,
     rho = 1,
-    num_iters = 1000,
+    num_iters = 100,
 )
 print(-variables.x.sum())
 

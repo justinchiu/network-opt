@@ -1,4 +1,5 @@
 import numpy as np
+import cvxpy as cp
 
 class Variables:
     def __init__(self, V, Pr):
@@ -134,6 +135,8 @@ def update_lambda(variables, residuals, cache):
     return (lambda1 + rho * r1, lambda3 + rho * r3, lambda4 + rho * r4)
 
 
+## TESTING
+
 def update_x_cvxpy(variables, constraints, cache):
     z = variables.z
     s1 = variables.s1
@@ -145,11 +148,86 @@ def update_x_cvxpy(variables, constraints, cache):
     e2p = cache.e2p
     A_r_inv = cache.A_r_inv
     V = cache.V
+    Pr = cache.Pr
     rho = cache.rho
+    dense_r2p = cache.dense_r2p
 
-    b = (
-        (-1 - lambda1[:,None] + (e2p * lambda4).sum(0).reshape(V*V, -1))
-        + rho * ((-d + s1)[:,None] - (e2p * z).sum(0).reshape(V*V, -1))
+    x = cp.Variable(V*V*Pr, nonneg=True)
+    objective = cp.Minimize(
+        -cp.sum(x) + cp.sum(cp.multiply(lambda1, (d - dense_r2p @ x - s1)))
+        + cp.sum(cp.multiply(lambda4, x[None] - z))
+        + (rho / 2) * (cp.sum((d - dense_r2p @ x - s1)**2) + cp.sum((x[None] - z)**2))
     )
-    x = -np.einsum("nab,nb->na", A_r_inv / rho, b).reshape(-1)
-    return np.maximum(0, x)
+    prob = cp.Problem(objective)
+    result = prob.solve()
+    return x.value
+
+def update_z_cvxpy(variables, constraints, cache):
+    x = variables.x
+    s3 = variables.s3
+    lambda3 = variables.l3
+    lambda4 = variables.l4
+
+    c = constraints.c
+
+    A_invs = cache.A_invs
+    rho = cache.rho
+    e2p = cache.e2p
+    V = cache.V
+    Pr = cache.Pr
+
+    z = cp.Variable((V*V, V*V*Pr), nonneg=True)
+    objective = cp.Minimize(
+        cp.sum(cp.multiply(lambda3, c - cp.sum(cp.multiply(e2p, z), axis=1) - s3))
+        + cp.sum(cp.multiply(lambda4, x[None] - z))
+        + (rho / 2) * (
+            cp.sum((c - cp.sum(cp.multiply(e2p, z), axis=1) - s3)**2)
+            + cp.sum((x[None] - z)**2)
+        )
+    )
+    prob = cp.Problem(objective)
+    result = prob.solve()
+    return z.value
+
+if __name__ == "__main__":
+    from data import load_problem
+
+    problem = load_problem()
+
+    rho = 1
+    Pr = problem.Pr
+    V = problem.constraints.shape[0]
+
+    d = problem.demand.reshape(-1)
+    c = problem.constraints.reshape(-1)
+
+    # see solver.py
+    variables = Variables(V, Pr)
+    constraints = Constraints(d, c)
+    cache = Cache(V, Pr, rho, problem.e2p)
+
+    # construct dense_r2p as a sequence of [ 0 ... 1 ... 0 ] stacked vectors
+    dense_r2p = []
+    for v in range(V * V):
+        vec = np.zeros(problem.P)
+        vec[v*problem.Pr:(1+v)*problem.Pr] = 1
+        dense_r2p.append(vec)
+    cache.dense_r2p = np.vstack(dense_r2p)
+
+    x = update_x(variables, constraints, cache)
+    x0 = update_x_cvxpy(variables, constraints, cache)
+    #assert(np.allclose(x, x0))
+    variables.x = x0
+
+    z = update_z(variables, constraints, cache)
+    z0 = update_z_cvxpy(variables, constraints, cache)
+    assert(np.allclose(z, z0))
+    #variables.z = z
+    s1, s3 = update_s(variables, constraints, cache)
+    s10, s30 = update_s_cvxpy(variables, constraints, cache)
+    #variables.s1 = s1
+    #variables.s3 = s3
+
+    residuals = compute_residuals(variables, constraints, cache)
+
+    l1, l3, l4 = update_lambda(variables, residuals, cache)
