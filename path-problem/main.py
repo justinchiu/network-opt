@@ -20,7 +20,7 @@ from solver import (
 )
 
 from solver import (
-    update_x_cvxpy, update_z_cvxpy, #update_s_cvxpy,
+    update_x_cvxpy, update_z_cvxpy, update_s_cvxpy,
 )
 
 
@@ -88,13 +88,14 @@ def naive_admm_solver(
     cache.dense_r2p = dense_r2p
 
     for iter in range(num_iters):
-        x = update_x(variables, constraints, cache)
-        #x = update_x_cvxpy(variables, constraints, cache)
+        #x = update_x(variables, constraints, cache)
+        x = update_x_cvxpy(variables, constraints, cache)
         variables.x = x
-        z = update_z(variables, constraints, cache)
-        #z = update_z_cvxpy(variables, constraints, cache)
+        #z = update_z(variables, constraints, cache)
+        z = update_z_cvxpy(variables, constraints, cache)
         variables.z = z
-        s1, s3 = update_s(variables, constraints, cache)
+        #s1, s3 = update_s(variables, constraints, cache)
+        s1, s3 = update_s_cvxpy(variables, constraints, cache)
         variables.s1 = s1
         variables.s3 = s3
 

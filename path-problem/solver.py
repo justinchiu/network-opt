@@ -235,6 +235,39 @@ def update_z_cvxpy(variables, constraints, cache):
     result = prob.solve()
     return z.value
 
+def update_s_cvxpy(variables, constraints, cache):
+    x = variables.x
+    z = variables.z
+    lambda1 = variables.l1
+    lambda3 = variables.l3
+
+    d = constraints.d
+    c = constraints.c
+
+    e2p = cache.e2p
+    V = cache.V
+    Pr = cache.Pr
+    rho = cache.rho
+    dense_r2p = cache.dense_r2p
+
+    s1 = cp.Variable(V*V, nonneg=True)
+    objective = cp.Minimize(
+        cp.sum(cp.multiply(lambda1, (d - dense_r2p @ x - s1)))
+        + (rho / 2) * cp.sum((d - dense_r2p @ x - s1)**2)
+    )
+    prob = cp.Problem(objective)
+    result = prob.solve()
+
+    s3 = cp.Variable(V*V, nonneg=True)
+    objective = cp.Minimize(
+        cp.sum(cp.multiply(lambda3, c - cp.sum(cp.multiply(e2p, z), axis=1) - s3))
+        + (rho / 2) * cp.sum((c - cp.sum(cp.multiply(e2p, z), axis=1) - s3)**2)
+    )
+    prob = cp.Problem(objective)
+    result = prob.solve()
+    return s1.value, s3.value
+
+
 if __name__ == "__main__":
     from data import load_problem
 
@@ -262,13 +295,15 @@ if __name__ == "__main__":
     z = update_z(variables, constraints, cache)
     # cvxpy sets the non-related edge-path variables > 0,
     # so we need to compare the ones we know are nonzero
-    assert(np.allclose(
+    assert np.allclose(
         z.reshape(-1)[cache.e2p.reshape(-1).astype(bool)],
         z0.reshape(-1)[cache.e2p.reshape(-1).astype(bool)]
-    ))
+    )
     #variables.z = z
     s1, s3 = update_s(variables, constraints, cache)
     s10, s30 = update_s_cvxpy(variables, constraints, cache)
+    assert np.allclose(s1, s10)
+    assert np.allclose(s3, s30)
     #variables.s1 = s1
     #variables.s3 = s3
 
