@@ -299,13 +299,14 @@ if __name__ == "__main__":
         z.reshape(-1)[cache.e2p.reshape(-1).astype(bool)],
         z0.reshape(-1)[cache.e2p.reshape(-1).astype(bool)]
     )
-    #variables.z = z
+    variables.z = z
+
     s1, s3 = update_s(variables, constraints, cache)
     s10, s30 = update_s_cvxpy(variables, constraints, cache)
     assert np.allclose(s1, s10)
     assert np.allclose(s3, s30)
-    #variables.s1 = s1
-    #variables.s3 = s3
+    variables.s1 = s1
+    variables.s3 = s3
 
     residuals = compute_residuals(variables, constraints, cache)
 
