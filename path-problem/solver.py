@@ -36,9 +36,17 @@ class Cache:
 
         self.A_invs = [
             np.linalg.inv(np.ones((k, k)) + np.eye(k))
-            #if k > 0 else None
             for k in num_paths_for_edge.tolist()
         ]
+
+        # DBG
+        # construct dense_r2p as a sequence of [ 0 ... 1 ... 0 ] stacked vectors
+        dense_r2p = []
+        for v in range(V * V):
+            vec = np.zeros(V*V*Pr)
+            vec[v*Pr:(1+v)*Pr] = 1
+            dense_r2p.append(vec)
+        self.dense_r2p = np.vstack(dense_r2p)
 
 def update_x(variables, constraints, cache):
     z = variables.z
@@ -52,12 +60,14 @@ def update_x(variables, constraints, cache):
     A_r_inv = cache.A_r_inv
     V = cache.V
     rho = cache.rho
+    Pr = cache.Pr
 
     b = (
-        (-1 - lambda1[:,None] + (e2p * lambda4).sum(0).reshape(V*V, -1))
-        + rho * ((-d + s1)[:,None] - (e2p * z).sum(0).reshape(V*V, -1))
+        (-1 - lambda1[:,None] + (e2p * lambda4).sum(0).reshape(V*V, Pr))
+        + rho * ((-d + s1)[:,None] - (e2p * z).sum(0).reshape(V*V, Pr))
     )
     x = -np.einsum("nab,nb->na", A_r_inv / rho, b).reshape(-1)
+    #import pdb; pdb.set_trace()
     return np.maximum(0, x)
 
 def update_z(variables, constraints, cache):
@@ -97,8 +107,6 @@ def update_s(variables, constraints, cache):
     V = cache.V
     rho = cache.rho
 
-    A_invs = cache.A_invs
-    rho = cache.rho
     s1 = (lambda1 + rho * (d - x.reshape(V*V, -1).sum(1))) / rho
     s3 = (lambda3 + rho * (c - (e2p * z).sum(-1))) / rho
     s1 = np.maximum(0, s1)
@@ -206,22 +214,20 @@ if __name__ == "__main__":
     constraints = Constraints(d, c)
     cache = Cache(V, Pr, rho, problem.e2p)
 
-    # construct dense_r2p as a sequence of [ 0 ... 1 ... 0 ] stacked vectors
-    dense_r2p = []
-    for v in range(V * V):
-        vec = np.zeros(problem.P)
-        vec[v*problem.Pr:(1+v)*problem.Pr] = 1
-        dense_r2p.append(vec)
-    cache.dense_r2p = np.vstack(dense_r2p)
-
-    x = update_x(variables, constraints, cache)
     x0 = update_x_cvxpy(variables, constraints, cache)
+    x = update_x(variables, constraints, cache)
+    #import pdb; pdb.set_trace()
     #assert(np.allclose(x, x0))
     variables.x = x0
 
-    z = update_z(variables, constraints, cache)
     z0 = update_z_cvxpy(variables, constraints, cache)
-    assert(np.allclose(z, z0))
+    z = update_z(variables, constraints, cache)
+    # cvxpy sets the non-related edge-path variables > 0,
+    # so we need to compare the ones we know are nonzero
+    assert(np.allclose(
+        z.reshape(-1)[cache.e2p.reshape(-1).astype(bool)],
+        z0.reshape(-1)[cache.e2p.reshape(-1).astype(bool)]
+    ))
     #variables.z = z
     s1, s3 = update_s(variables, constraints, cache)
     s10, s30 = update_s_cvxpy(variables, constraints, cache)

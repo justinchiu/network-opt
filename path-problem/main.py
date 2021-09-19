@@ -59,7 +59,8 @@ sol = X.value
 
 print("Constraint residuals")
 print((dense_r2p @ sol - problem.demand.reshape((V*V,))).max())
-print((problem.e2p.reshape((V*V, problem.P)) @ sol - problem.constraints.reshape((V*V,))).max())
+print((problem.e2p.reshape((V*V, problem.P)) @ sol
+    - problem.constraints.reshape((V*V,))).max())
 
 # ADMM
 
@@ -104,8 +105,8 @@ def naive_admm_solver(
 
 variables, (r1, r3, r4)= naive_admm_solver(
     problem,
-    rho = 1,
-    num_iters = 100,
+    rho = 2,
+    num_iters = 50,
 )
 print(-variables.x.sum())
 

@@ -160,10 +160,10 @@ a feasible solution for the original problem.
 Given the augmented Lagrangian, the ADMM updates are as follows:
 \begin{equation}
     \begin{aligned}
-        x^{k+1} := \argmin_{x} \mcL_\rho(x,z^k,s^{k},\lambda^k)\\
-        z^{k+1} := \argmin_{z} \mcL_\rho(x^{k+1},z,s^{k},\lambda^k)\\
-        s^{k+1} := \argmin_{s} \mcL_\rho(x^{k+1},z^{k+1},s,\lambda^k)\\
-        \lambda^{k+1} := \lambda^k + \rho(F(x^{k+1},z^{k+1},s^{k+1})).
+        x^{k+1} &:= \argmin_{x} \mcL_\rho(x,z^k,s^{k},\lambda^k)\\
+        z^{k+1} &:= \argmin_{z} \mcL_\rho(x^{k+1},z,s^{k},\lambda^k)\\
+        s^{k+1} &:= \argmin_{s} \mcL_\rho(x^{k+1},z^{k+1},s,\lambda^k)\\
+        \lambda^{k+1} &:= \lambda^k + \rho(F(x^{k+1},z^{k+1},s^{k+1})).
     \end{aligned}
 \end{equation}
 We solve for each update below.
