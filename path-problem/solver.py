@@ -1,6 +1,11 @@
 import numpy as np
 import cvxpy as cp
 
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+import pandas as pd
+
 class Variables:
     def __init__(self, V, Pr):
         self.x  = np.zeros((V*V*Pr,))
@@ -47,6 +52,39 @@ class Cache:
             vec[v*Pr:(1+v)*Pr] = 1
             dense_r2p.append(vec)
         self.dense_r2p = np.vstack(dense_r2p)
+
+class StatLog:
+    def __init__(self):
+        self.objective = []
+        self.lagrange_multipliers = []
+        self.r1 = []
+        self.r3 = []
+        self.r4 = []
+
+    def log_stats(self, variables, residuals):
+        self.objective.append(variables.x.sum())
+
+        r1, r3, r4 = residuals
+        self.r1.append(np.square(r1).sum())
+        self.r3.append(np.square(r3).sum())
+        self.r4.append(np.square(r4).sum())
+
+    def print(self):
+        L = len(self.objective)
+        kv_map = {
+            "iter": range(L),
+            "objective": self.objective,
+            "r1": self.r1,
+            "r3": self.r3,
+            "r4": self.r4,
+        }
+        df = pd.DataFrame(kv_map)
+
+        fig, axes = plt.subplots(len(kv_map)-1, figsize=(18, 10))
+        for i, k in enumerate(k for k in kv_map if k != "iter"):
+            sns.lineplot(ax=axes[i], data=df, x="iter", y=k)
+
+        plt.show()
 
 def update_x(variables, constraints, cache):
     z = variables.z

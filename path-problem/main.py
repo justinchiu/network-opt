@@ -13,6 +13,7 @@ from typing import NamedTuple, List
 from data import load_problem
 
 from solver import (
+    StatLog,
     Variables, Constraints, Cache,
     update_x, update_z, update_s,
     compute_residuals, update_lambda,
@@ -25,11 +26,13 @@ from solver import (
 
 problem = load_problem()
 
+"""
 G = problem.graph
 pos = nx.spring_layout(G, seed=225)  # Seed for reproducible layout
 nx.draw(G, pos, with_labels=True)
 
 plt.savefig('example_graph.png')
+"""
 
 V = problem.constraints.shape[0]
 
@@ -69,6 +72,8 @@ def naive_admm_solver(
     rho,
     num_iters = 100,
 ):
+    stat_log = StatLog()
+
     Pr = problem.Pr
     V = problem.constraints.shape[0]
 
@@ -83,11 +88,11 @@ def naive_admm_solver(
     cache.dense_r2p = dense_r2p
 
     for iter in range(num_iters):
-        #x = update_x(variables, constraints, cache)
-        x = update_x_cvxpy(variables, constraints, cache)
+        x = update_x(variables, constraints, cache)
+        #x = update_x_cvxpy(variables, constraints, cache)
         variables.x = x
-        #z = update_z(variables, constraints, cache)
-        z = update_z_cvxpy(variables, constraints, cache)
+        z = update_z(variables, constraints, cache)
+        #z = update_z_cvxpy(variables, constraints, cache)
         variables.z = z
         s1, s3 = update_s(variables, constraints, cache)
         variables.s1 = s1
@@ -100,15 +105,20 @@ def naive_admm_solver(
         variables.l3 = l3
         variables.l4 = l4
 
-    return variables, residuals
+        stat_log.log_stats(variables, residuals)
+
+    return variables, residuals, stat_log
 
 
-variables, (r1, r3, r4)= naive_admm_solver(
+variables, (r1, r3, r4), stat_log = naive_admm_solver(
     problem,
-    rho = 2,
+    rho = 1,
     num_iters = 50,
 )
 print(-variables.x.sum())
 
 print(np.square(r4).sum())
-import pdb; pdb.set_trace()
+
+stat_log.print()
+
+#import pdb; pdb.set_trace()
