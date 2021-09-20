@@ -166,6 +166,7 @@ def compute_residuals(variables, constraints, cache):
     r1 = d - x.reshape(V*V, -1).sum(1) - s1
     r3 = c - (e2p * z).sum(-1) - s3
     r4 = x[None] - z
+    r4[~e2p.astype(bool)] = 0
 
     return r1, r3, r4
 
@@ -202,7 +203,10 @@ def update_x_cvxpy(variables, constraints, cache):
     objective = cp.Minimize(
         -cp.sum(x) + cp.sum(cp.multiply(lambda1, (d - dense_r2p @ x - s1)))
         + cp.sum(cp.multiply(lambda4, x[None] - z))
-        + (rho / 2) * (cp.sum((d - dense_r2p @ x - s1)**2) + cp.sum((x[None] - z)**2))
+        + (rho / 2) * (
+            cp.sum((d - dense_r2p @ x - s1)**2)
+            + cp.sum((x[None] - z)[e2p.astype(bool)]**2)
+        )
     )
     prob = cp.Problem(objective)
     result = prob.solve()
@@ -228,7 +232,7 @@ def update_z_cvxpy(variables, constraints, cache):
         + cp.sum(cp.multiply(lambda4, x[None] - z))
         + (rho / 2) * (
             cp.sum((c - cp.sum(cp.multiply(e2p, z), axis=1) - s3)**2)
-            + cp.sum((x[None] - z)**2)
+            + cp.sum((x[None] - z)[e2p.astype(bool)]**2)
         )
     )
     prob = cp.Problem(objective)
@@ -287,18 +291,14 @@ if __name__ == "__main__":
 
     x0 = update_x_cvxpy(variables, constraints, cache)
     x = update_x(variables, constraints, cache)
-    #import pdb; pdb.set_trace()
-    #assert(np.allclose(x, x0))
-    variables.x = x0
+    assert(np.allclose(x, x0))
+    variables.x = x
 
     z0 = update_z_cvxpy(variables, constraints, cache)
     z = update_z(variables, constraints, cache)
     # cvxpy sets the non-related edge-path variables > 0,
     # so we need to compare the ones we know are nonzero
-    assert np.allclose(
-        z.reshape(-1)[cache.e2p.reshape(-1).astype(bool)],
-        z0.reshape(-1)[cache.e2p.reshape(-1).astype(bool)]
-    )
+    assert np.allclose(z, z0)
     variables.z = z
 
     s1, s3 = update_s(variables, constraints, cache)
