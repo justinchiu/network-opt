@@ -296,8 +296,6 @@ if __name__ == "__main__":
 
     z0 = update_z_cvxpy(variables, constraints, cache)
     z = update_z(variables, constraints, cache)
-    # cvxpy sets the non-related edge-path variables > 0,
-    # so we need to compare the ones we know are nonzero
     assert np.allclose(z, z0)
     variables.z = z
 
