@@ -84,6 +84,71 @@ This yields the following optimization problem:
 \end{aligned}
 \end{equation}
 
+We derive the dual of this problem in order to more naturally
+incorporate constraints on the demands.
+Introducing dual variables $\lambda_1$ for constraint [1],
+$\lambda_2$ for constraint [2], and $\nu$ for the nonnegativity of $x$,
+we have the Lagrangian:
+\begin{equation}
+\label{eqn:lagrangian-network-opt}
+\mcL(x, \lambda_1,\lambda_2,\nu) = -\sum_r \sum_{p\in r} x_p
++ \sum_r \lambda_{1r}\left(\sum_{p \in r}x_p - d_r\right)
++ \sum_e \lambda_{2e}\left(\sum_{p\in\pi(e)} x_p - c_e\right)
++ \nu^\top x.
+\end{equation}
+The Lagrange dual function is given by
+\begin{align*}
+g(\lambda_1,\lambda_2,\nu) &= \inf_x \mcL(x, \lambda_1,\lambda_2,\nu)\\
+&= -\sum_r \lambda_{1r}d_r - \sum_e \lambda_{2e}c_e
++\inf_x \left(-\sum_r \sum_{p\in r} x_p
++ \sum_r \sum_{p \in r}\lambda_{1r}x_p
++ \sum_e \sum_{p\in\pi(e)}\lambda_{2e} x_p
++ \nu^\top x\right).
+\end{align*}
+The dual function is only greater than negative infinity if
+the last term is equal to 0.
+The dual of this problem is given by
+\begin{equation}
+\label{eqn:network-opt-dual}
+\begin{aligned}
+\textrm{maximize } \quad & -\sum_r \lambda_{1r}d_r - \sum_e \lambda_{2e}c_e\\
+\textrm{subject to } \quad
+& \sum_r 1(p \in r)\lambda_{1r} + \sum_e 1(p\in\pi(e))\lambda_{2e} + \nu_p= 1, \forall p\\
+& \lambda_{1r} \geq 0, \forall r\\
+& \lambda_{2e} \geq 0, \forall e,
+\end{aligned}
+\end{equation}
+where we optimize over $\lambda_1,\lambda_2$.
+
+We now propose a variant of the above problem with uncertain demands.
+In order to handle uncertainty,
+we introduce a risk tolerance,
+i.e. that the demand must fall within a particular range with probability $> \epsilon$,
+then optimize the worst-case demand constrained to that ellipse.
+To simplify the problem, we will assume that the demands are now
+random variables $d_r \sim \bar{d}_r + u_r$,
+where $u_r$ has zero mean, meaning each demand is independent from the others.
+We denote the lower and upper ends of the uncertainty intervals as $d_{rl}, d_{ru}$.
+
+Augmenting the dual problem above yields the optimization problem
+\begin{equation}
+\label{eqn:uncertain-network-opt-dual}
+\begin{aligned}
+\textrm{maximize } \quad & \inf_{d} -\sum_r \lambda_{1r}d_r - \sum_e \lambda_{2e}c_e\\
+\textrm{subject to } \quad
+& \sum_r 1(p \in r)\lambda_{1r} + \sum_e 1(p\in\pi(e))\lambda_{2e} = 1, \forall p\\
+& d_{rl} \le d_r \le d_{ru}, \forall r\\
+& \lambda_{1r} \geq 0, \forall r\\
+& \lambda_{2e} \geq 0, \forall e,
+\end{aligned}
+\end{equation}
+where we optimize over $\lambda_1, \lambda_2$.
+Intuitively, if optimizing the dual problem gives us the best lower bound,
+then solving this problem gives us the worst best lower bound under the demand constraints.
+
+
+\section{Older version}
+
 While this form is compact, we would like the problem to
 separate over paths. This is not possible in Eqn.~\ref{eqn:network-opt}
 because constraint [2] couples the traffic in paths across requests.
