@@ -34,7 +34,7 @@
 \usepackage[utf8]{inputenc}
 
 
-\title{Network Optimization}
+\title{Traffic Engineering}
 
 \author{Justin Chiu \\
   Cornell Tech \\
@@ -46,7 +46,7 @@
 None
 \end{abstract}
 
-\section{Network Traffic Problem}
+\section{Traffic Engineering Problem}
 We consider the problem of maximizing network traffic.
 A network is a graph with $V$ vertices $v$ and $E$ edges
 $e = (i,j)$.
@@ -120,6 +120,7 @@ The dual of this problem is given by
 \end{equation}
 where we optimize over $\lambda_1,\lambda_2$.
 
+\section{Traffic Engineering Under Uncertain Demands}
 We now propose a variant of the above problem with uncertain demands.
 In order to handle uncertainty,
 we introduce a risk tolerance,
@@ -144,7 +145,8 @@ Augmenting the dual problem above yields the optimization problem
 \end{equation}
 where we optimize over $\lambda_1, \lambda_2$.
 Intuitively, if optimizing the dual problem gives us the best lower bound,
-then solving this problem gives us the worst best lower bound under the demand constraints.
+then solving this problem gives us the worst (wrt the demand ellipsoid)
+best lower bound under the demand constraints.
 
 In the case of independent demand uncertainty, the infimum over $d$ occurs at $d_r = d_{ru}$.
 We explore the case where the uncertainty has more structure in the next section.
